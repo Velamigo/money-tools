@@ -216,7 +216,64 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+// ===== Supabase =====
+const SB_URL='https://kpxfhrqkkhdetjmyhjqj.supabase.co';
+const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtweGZocnFra2hkZXRqbXloanFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4Mzg0MTMsImV4cCI6MjEwMjQxNDQxM30.w0Rqr7x1SYgzfi0YeJCtaRW_EcigUB0ALEj9N-7p1zU';
+let sb;
+try{sb=window.supabase.createClient(SB_URL,SB_KEY);}catch(e){console.warn('Supabase not loaded',e);sb=null;}
+
+// ===== 工具 =====
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.abs(n).toLocaleString(lang==='zh'?'zh-CN':'en-US',{maximumFractionDigits:2});
+const todayStr=()=>new Date().toISOString().slice(0,10);
+const tagColor=i=>`person-tag tag-${i%6}`;
+const saveLS=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const loadLS=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]')}catch{return[]}};
+
+// ===== 数据层：Supabase 优先，离线降级到 localStorage =====
+async function dbGetPersons(){
+  if(sb){const{data,error}=await sb.from('persons').select('*').order('name');if(!error&&data)return data.map(r=>r.name);}
+  return loadLS('persons');
+}
+async function dbAddPerson(name){
+  if(sb){const{error}=await sb.from('persons').insert({name});if(error&&error.code==='23505')return;return;}
+  const p=loadLS('persons');if(!p.includes(name))p.push(name);saveLS('persons',p);
+}
+async function dbDelPerson(name){
+  if(sb){await sb.from('persons').delete().eq('name',name);return;}
+  const p=loadLS('persons').filter(x=>x!==name);saveLS('persons',p);
+}
+async function dbGetEntries(){
+  if(sb){const{data,error}=await sb.from('entries').select('*').order('created_at',{ascending:false});if(!error&&data)return data.map(e=>({...e,splitWho:e.split_who||[]}));}
+  return loadLS('entries');
+}
+async function dbAddEntry(e){
+  if(sb){const{error}=await sb.from('entries').insert({...e,split_who:JSON.stringify(e.splitWho)});return;}
+  const a=loadLS('entries');a.push(e);saveLS('entries',a);
+}
+async function dbDelEntry(id){
+  if(sb){await sb.from('entries').delete().eq('id',id);return;}
+  const a=loadLS('entries').filter(e=>e.id!==id);saveLS('entries',a);
+}
+async function dbGetFX(){
+  if(sb){const{data,error}=await sb.from('fx_history').select('*').order('created_at',{ascending:false});if(!error&&data)return data;}
+  return loadLS('fx_history');
+}
+async function dbAddFX(r){
+  if(sb){const{error}=await sb.from('fx_history').insert({date:r.date,direction:r.dir,amount:r.amount,my_rate:r.myRate,intl_rate:r.intlRate,fee:r.fee,got:r.got,intl_got:r.intlGot,diff:r.diff});return;}
+  const a=loadLS('fx_history');a.unshift(r);saveLS('fx_history',a);
+}
+async function dbDelFX(idx){
+  if(sb){const all=await dbGetFX();if(all[idx])await sb.from('fx_history').delete().eq('id',all[idx].id);return;}
+  const a=loadLS('fx_history');a.splice(idx,1);saveLS('fx_history',a);
+}
+async function dbClearFX(){
+  if(sb){await sb.from('fx_history').delete().neq('id',0);return;}
+  localStorage.removeItem('fx_history');
+}
+
 // ===== i18n =====
 const I18N={
   zh:{
@@ -366,14 +423,13 @@ function saveFX(){
   const actual=feeMode==='deduct'?got-fee:got;
   const intlDiff=actual-intlGot;
 
-  const h=load('fx_history');
-  h.unshift({date:todayStr(),dir,amount:amt,myRate:myR,intlRate:intlR,fee,got:actual,intlGot,diff:intlDiff});
-  save('fx_history',h);
-  renderFXHistory();
+  dbAddFX({date:todayStr(),dir,amount:amt,myRate:myR,intlRate:intlR,fee,got:actual,intlGot,diff:intlDiff}).then(()=>{
+    renderFXHistory();
+  });
 }
 
-function renderFXHistory(){
-  const h=load('fx_history');
+async function renderFXHistory(){
+  const h=await dbGetFX();
   const tb=$('fxHistory');
   tb.querySelectorAll('tbody tr').forEach(r=>r.remove());
   if(!h.length){$('fxEmpty').style.display='block';return;}
@@ -381,7 +437,7 @@ function renderFXHistory(){
   const tbody=document.createElement('tbody');
   h.forEach((r,i)=>{
     const tr=document.createElement('tr');
-    const isC2I=r.dir==='cny2inr';
+    const isC2I=r.direction==='cny2inr';
     const cls=r.diff>=0?'profit':'loss';
     tr.innerHTML=`<td>${r.date}</td><td>${isC2I?'CNY→INR':'INR→CNY'}</td><td>${fmt(r.amount)}</td><td>${fmt(r.got)}</td><td class="${cls}">${r.diff>=0?'+':''}${fmt(r.diff)}</td><td><button class="del" onclick="delFX(${i})">✕</button></td>`;
     tbody.appendChild(tr);
@@ -389,25 +445,31 @@ function renderFXHistory(){
   tb.appendChild(tbody);
 }
 
-function delFX(i){
-  const h=load('fx_history');
-  h.splice(i,1);
-  save('fx_history',h);
+async function delFX(i){
+  await dbDelFX(i);
   renderFXHistory();
 }
 
-function clearFXHistory(){
+async function clearFXHistory(){
   if(confirm(t('confirm_clear'))){
-    localStorage.removeItem('fx_history');
+    await dbClearFX();
     renderFXHistory();
   }
 }
 
 // ===== 记账 =====
-let persons=load('persons');
-let entries=load('entries');
+let persons=[];
+let entries=[];
 if(!persons.length)persons=[lang==='zh'?'我':'Me'];
 $('date').value=todayStr();
+
+async function loadData(){
+  persons=await dbGetPersons();
+  if(!persons.length){persons=[lang==='zh'?'我':'Me'];await dbAddPerson(persons[0]);}
+  entries=await dbGetEntries();
+  renderPersons();
+  renderLedger();
+}
 
 function renderPersons(){
   const sel=$('payer');
@@ -434,34 +496,29 @@ function renderPersons(){
   });
 }
 
-function addPerson(){
+async function addPerson(){
   const v=$('newPerson').value.trim();
   if(!v)return;
   if(persons.includes(v)){alert(t('exists'));return;}
-  persons.push(v);
-  save('persons',persons);
+  await dbAddPerson(v);
+  persons=await dbGetPersons();
   $('newPerson').value='';
   renderPersons();
   renderLedger();
 }
 
-function delPerson(i){
+async function delPerson(i){
   const name=persons[i];
   if(entries.some(e=>e.payer===name||e.splitWho.includes(name))){
     if(!confirm(`${name} ${t('in_records')}`))return;
-    entries=entries.map(e=>({
-      ...e,splitWho:e.splitWho.filter(s=>s!==name),
-      payer:e.payer===name?(persons[0]||''):e.payer
-    }));
-    save('entries',entries);
   }
-  persons.splice(i,1);
-  save('persons',persons);
+  await dbDelPerson(name);
+  persons=await dbGetPersons();
   renderPersons();
   renderLedger();
 }
 
-function addEntry(){
+async function addEntry(){
   const item=$('item').value.trim();
   const cost=parseFloat($('cost').value);
   const currency=$('currency').value;
@@ -473,16 +530,17 @@ function addEntry(){
   if(!item||!cost||!payer){alert(t('fill_required'));return;}
   if(!splitWho.length){alert(t('select_one'));return;}
 
-  entries.push({id:Date.now(),item,cost,currency,payer,date,note,splitWho});
-  save('entries',entries);
+  const entry={id:Date.now(),item,cost,currency,payer,date,note,splitWho};
+  await dbAddEntry(entry);
+  entries=await dbGetEntries();
   $('item').value='';$('cost').value='';$('note').value='';
   $('date').value=todayStr();
   renderLedger();
 }
 
-function delEntry(id){
-  entries=entries.filter(e=>e.id!==id);
-  save('entries',entries);
+async function delEntry(id){
+  await dbDelEntry(id);
+  entries=await dbGetEntries();
   renderLedger();
 }
 
@@ -562,8 +620,7 @@ applyTheme();
 applyI18n();
 calcFX();
 renderFXHistory();
-renderPersons();
-renderLedger();
+loadData();
 </script>
 </body>
 </html>
