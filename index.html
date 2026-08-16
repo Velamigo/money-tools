@@ -226,7 +226,7 @@
   <div class="card">
     <h2 data-i18n="ledger_detail">📊 账目明细</h2>
     <table id="ledgerTable">
-      <thead><tr><th data-i18n="date">日期</th><th data-i18n="item_label">项目</th><th data-i18n="payer">付款人</th><th data-i18n="amount_label">金额</th><th>≈ RMB</th><th style="cursor:pointer;user-select:none" onclick="toggleRateDetail()" data-i18n="fx_rate">折算费率 ▼</th><th data-i18n="split_who">均摊人</th><th></th></tr></thead>
+      <thead><tr><th data-i18n="date">日期</th><th data-i18n="item_label">项目</th><th data-i18n="payer">付款人</th><th data-i18n="amount_label">金额</th><th>≈RMB</th><th style="cursor:pointer;user-select:none;white-space:nowrap" onclick="toggleRateDetail()" data-i18n="fx_rate">费率▼</th><th data-i18n="split_who">均摊人</th><th></th></tr></thead>
     </table>
     <div id="ledgerEmpty" class="empty" data-i18n="ledger_empty">暂无记录</div>
   </div>
@@ -642,7 +642,7 @@ function renderLedger(){
       const rmb=cur==='INR'?(e.cost/fxRate):e.cost;
       const tr=document.createElement('tr');
       const tags=e.splitWho.map(s=>{const idx=persons.indexOf(s);return `<span class="${tagColor(idx)}" style="font-size:11px">${s}</span>`}).join('');
-      tr.innerHTML=`<td>${e.date}</td><td>${e.item}${e.note?'<br><span style="color:var(--dim);font-size:12px">'+e.note+'</span>':''}</td><td><span class="${tagColor(payerIdx)}">${e.payer}</span></td><td>${sym}${fmt(e.cost)}</td><td style="color:var(--dim)">¥${fmt(rmb)}</td><td style="color:var(--dim);font-size:13px">${cur==='INR'?'1 CNY = '+fxRate.toFixed(4)+' INR':'—'}</td><td>${tags}</td><td><button class="del" onclick="delEntry(${e.id})">✕</button></td>`;
+      tr.innerHTML=`<td>${e.date}</td><td>${e.item}${e.note?'<br><span style="color:var(--dim);font-size:12px">'+e.note+'</span>':''}</td><td><span class="${tagColor(payerIdx)}">${e.payer}</span></td><td>${sym}${fmt(e.cost)}</td><td style="color:var(--dim)">¥${fmt(rmb)}</td><td style="color:var(--dim);font-size:12px;white-space:nowrap">${cur==='INR'?'1¥='+fxRate.toFixed(2)+'₹':'—'}</td><td>${tags}</td><td><button class="del" onclick="delEntry(${e.id})">✕</button></td>`;
       tbody.appendChild(tr);
       // 折算费率详情行（默认隐藏）
       if(cur==='INR'){
@@ -656,13 +656,14 @@ function renderLedger(){
         const got=amt*myR;
         const actualGot=feeMode==='deduct'?got-fee:got;
         const effRate=amt>0?(actualGot/amt):myR;
-        detail.innerHTML=`<td colspan="8" style="background:var(--input-bg);padding:12px 16px;font-size:13px;color:var(--dim)">
-          <div>原始汇率: 1 CNY = ${myR} INR</div>
-          <div>手续费: ${fmt(fee)} INR (${feeMode==='deduct'?'从到手扣除':'额外支付'})</div>
-          <div>兑换金额: ¥${fmt(amt)}</div>
-          <div>到手 INR: ${fmt(actualGot)}</div>
-          <div>有效费率: 1 CNY = ${effRate.toFixed(4)} INR</div>
-          <div>计算: ${sym}${fmt(e.cost)} ÷ ${effRate.toFixed(4)} = ¥${fmt(rmb)}</div>
+        detail.innerHTML=`<td colspan="8" style="background:var(--input-bg);padding:10px 16px;font-size:12px;color:var(--dim)">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px">
+            <span>原始汇率: 1¥ = ${myR}₹</span>
+            <span>手续费: ${fmt(fee)}₹ (${feeMode==='deduct'?'从到手扣除':'额外支付'})</span>
+            <span>兑换: ¥${fmt(amt)} → ${fmt(actualGot)}₹</span>
+            <span style="color:var(--green);font-weight:600">有效费率: 1¥ = ${effRate.toFixed(4)}₹</span>
+            <span>折算: ${sym}${fmt(e.cost)} ÷ ${effRate.toFixed(4)} = ¥${fmt(rmb)}</span>
+          </div>
         </td>`;
         tbody.appendChild(detail);
       }
