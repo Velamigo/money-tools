@@ -248,40 +248,13 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-// ===== Supabase (直接用 fetch，不需要外部 SDK) =====
+// ===== Supabase =====
 const SB_URL='https://kpxfhrqkkhdetjmyhjqj.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtweGZocnFra2hkZXRqbXloanFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4Mzg0MTMsImV4cCI6MjEwMjQxNDQxM30.w0Rqr7x1SYgzfi0YeJCtaRW_EcigUB0ALEj9N-7p1zU';
-const sb=null;
-
-async function sbGet(table,order){
-  try{
-    const r=await fetch(`${SB_URL}/rest/v1/${table}?select=*${order?('&order='+order):''}`,{
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-    });
-    if(!r.ok)return [];
-    return await r.json();
-  }catch(e){return [];}
-}
-async function sbPost(table,data){
-  try{
-    const r=await fetch(`${SB_URL}/rest/v1/${table}`,{
-      method:'POST',
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json','Prefer':'return=representation'},
-      body:JSON.stringify(data)
-    });
-    return r.ok;
-  }catch(e){return false;}
-}
-async function sbDelete(table,col,val){
-  try{
-    const r=await fetch(`${SB_URL}/rest/v1/${table}?${col}=eq.${encodeURIComponent(val)}`,{
-      method:'DELETE',
-      headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}
-    });
-    return r.ok;
-  }catch(e){return false;}
-}
+let sb=null;
+try{sb=window.supabase.createClient(SB_URL,SB_KEY);}catch(e){console.warn('Supabase init failed:',e);sb=null;}
 
 // ===== 工具 =====
 const $=id=>document.getElementById(id);
@@ -294,54 +267,56 @@ const loadLS=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]')}catch{retu
 
 // ===== 数据层 =====
 async function dbGetPersons(){
-  const data=await sbGet('persons','name');
-  if(data&&data.length)return data.map(r=>r.name);
+  if(sb){const{data,error}=await sb.from('persons').select('*').order('name');if(!error&&data)return data.map(r=>r.name);}
   return loadLS('persons');
 }
 async function dbAddPerson(name){
-  await sbPost('persons',{name});
+  if(sb){const{error}=await sb.from('persons').insert({name});if(error&&error.code==='23505')return;return;}
   const p=loadLS('persons');if(!p.includes(name))p.push(name);saveLS('persons',p);
 }
 async function dbDelPerson(name){
-  await sbDelete('persons','name',name);
+  if(sb){await sb.from('persons').delete().eq('name',name);return;}
   const p=loadLS('persons').filter(x=>x!==name);saveLS('persons',p);
 }
 async function dbGetEntries(){
-  const data=await sbGet('entries','created_at.desc');
-  if(data&&data.length)return data.map(e=>{
+  if(sb){const{data,error}=await sb.from('entries').select('*').order('created_at',{ascending:false});if(!error&&data)return data.map(e=>{
     let sw=e.split_who;
     if(typeof sw==='string'){try{sw=JSON.parse(sw)}catch{sw=[]}}
     if(!Array.isArray(sw))sw=[];
     return{...e,splitWho:sw};
-  });
+  });}
   return loadLS('entries');
 }
 async function dbAddEntry(e){
-  await sbPost('entries',{id:e.id,item:e.item,cost:e.cost,currency:e.currency,payer:e.payer,date:e.date,note:e.note,split_who:JSON.stringify(e.splitWho)});
+  if(sb){
+    const{error}=await sb.from('entries').insert({
+      id:e.id,item:e.item,cost:e.cost,currency:e.currency,
+      payer:e.payer,date:e.date,note:e.note,
+      split_who:JSON.stringify(e.splitWho)
+    });
+    if(error)console.warn('dbAddEntry error:',error);
+    return;
+  }
   const a=loadLS('entries');a.push(e);saveLS('entries',a);
 }
 async function dbDelEntry(id){
-  await sbDelete('entries','id',id);
+  if(sb){await sb.from('entries').delete().eq('id',id);return;}
   const a=loadLS('entries').filter(e=>e.id!==id);saveLS('entries',a);
 }
 async function dbGetFX(){
-  const data=await sbGet('fx_history','created_at.desc');
-  if(data&&data.length)return data;
+  if(sb){const{data,error}=await sb.from('fx_history').select('*').order('created_at',{ascending:false});if(!error&&data)return data;}
   return loadLS('fx_history');
 }
 async function dbAddFX(r){
-  await sbPost('fx_history',{date:r.date,direction:r.dir,amount:r.amount,my_rate:r.myRate,intl_rate:r.intlRate,fee:r.fee,got:r.got,intl_got:r.intlGot,diff:r.diff});
+  if(sb){const{error}=await sb.from('fx_history').insert({date:r.date,direction:r.dir,amount:r.amount,my_rate:r.myRate,intl_rate:r.intlRate,fee:r.fee,got:r.got,intl_got:r.intlGot,diff:r.diff});return;}
   const a=loadLS('fx_history');a.unshift(r);saveLS('fx_history',a);
 }
 async function dbDelFX(idx){
-  const all=await dbGetFX();
-  if(all[idx]&&all[idx].id)await sbDelete('fx_history','id',all[idx].id);
-  else{const a=loadLS('fx_history');a.splice(idx,1);saveLS('fx_history',a);}
+  if(sb){const all=await dbGetFX();if(all[idx])await sb.from('fx_history').delete().eq('id',all[idx].id);return;}
+  const a=loadLS('fx_history');a.splice(idx,1);saveLS('fx_history',a);
 }
 async function dbClearFX(){
-  try{
-    await fetch(`${SB_URL}/rest/v1/fx_history?id=neq.0`,{method:'DELETE',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY}});
-  }catch(e){}
+  if(sb){await sb.from('fx_history').delete().neq('id',0);return;}
   localStorage.removeItem('fx_history');
 }
 
