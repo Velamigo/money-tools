@@ -96,41 +96,6 @@
     .person-tag{font-size:12px;padding:3px 10px;}
     .settle-card{flex-direction:column;gap:8px;align-items:flex-start;}
     .settle-arrow{margin:0;}
-    .fit-cat-grid{grid-template-columns:repeat(2,1fr);}
-  }
-  /* ===== 健身打卡 ===== */
-  .fit-cat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
-  .fit-cat-btn{padding:14px 8px;border:2px solid var(--border);border-radius:12px;background:var(--input-bg);color:var(--text);cursor:pointer;font-size:14px;font-weight:600;transition:.2s;text-align:center;}
-  .fit-cat-btn:hover{border-color:var(--accent);}
-  .fit-cat-btn.selected{border-color:var(--accent);background:var(--accent);color:#fff;}
-  .fit-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
-  .fit-stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;}
-  .fit-stat-num{font-size:28px;font-weight:800;}
-  .fit-stat-label{font-size:12px;color:var(--dim);margin-top:4px;}
-  .fit-chart{display:flex;flex-direction:column;gap:10px;margin-top:12px;}
-  .fit-bar-row{display:flex;align-items:center;gap:10px;}
-  .fit-bar-label{width:80px;font-size:13px;color:var(--dim);text-align:right;flex-shrink:0;}
-  .fit-bar-track{flex:1;height:28px;background:var(--input-bg);border-radius:8px;overflow:hidden;border:1px solid var(--border);}
-  .fit-bar-fill{height:100%;border-radius:8px;min-width:4px;transition:width .5s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:8px;font-size:12px;font-weight:700;color:#fff;}
-  .fit-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px;}
-  .fit-cal-day{text-align:center;padding:10px 4px;border-radius:8px;font-size:12px;border:1px solid var(--border);background:var(--input-bg);}
-  .fit-cal-day.done{background:var(--green);color:#000;border-color:var(--green);font-weight:700;}
-  .fit-cal-day.today{border-color:var(--accent);border-width:2px;}
-  .fit-cal-day .cal-date{font-size:14px;font-weight:700;}
-  .fit-cal-day .cal-weekday{font-size:10px;color:var(--dim);}
-  .fit-cal-day.done .cal-weekday{color:#000;opacity:.7;}
-  .fit-record{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border);}
-  .fit-record:last-child{border:none;}
-  .fit-record-cat{font-weight:600;font-size:15px;}
-  .fit-record-date{font-size:12px;color:var(--dim);}
-  .fit-record-note{font-size:12px;color:var(--dim);margin-top:2px;}
-  .fit-del{color:var(--red);cursor:pointer;border:none;background:none;font-size:16px;padding:4px 8px;border-radius:6px;}
-  .fit-del:hover{background:rgba(255,107,107,.15);}
-  .fit-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;padding:12px 24px;border-radius:12px;font-weight:600;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.3);animation:fitToastIn .3s ease;}
-  @keyframes fitToastIn{from{opacity:0;transform:translateX(-50%) translateY(20px);}to{opacity:1;transform:translateX(-50%) translateY(0);}}
-  @media(max-width:600px){
-    .fit-stats{grid-template-columns:1fr;}
-    .fit-cat-grid{grid-template-columns:repeat(2,1fr);}
   }
 </style>
 </head>
@@ -138,7 +103,6 @@
 <div class="nav">
   <button class="nav-btn active" data-i18n="fx" onclick="showPage('fx',this)">💱 汇率换算</button>
   <button class="nav-btn" data-i18n="ledger" onclick="showPage('ledger',this)">📝 记账均摊</button>
-  <button class="nav-btn" data-i18n="fitness" onclick="showPage('fitness',this)">💪 健身打卡</button>
   <div class="nav-right">
     <button class="icon-btn" onclick="toggleLang()" id="langBtn">EN</button>
     <button class="icon-btn" onclick="toggleTheme()" id="themeBtn">🌙</button>
@@ -284,38 +248,6 @@
   </div>
 </div>
 
-<!-- ========== 健身打卡 ========== -->
-<div id="fitness" class="page">
-  <div class="fit-stats" id="fitStats"></div>
-
-  <div class="card">
-    <h2>💪 打卡</h2>
-    <label>选择锻炼部位</label>
-    <div class="fit-cat-grid" id="fitCatGrid"></div>
-    <div class="input-group" style="margin-top:12px">
-      <label>备注（可选）</label>
-      <input type="text" id="fitNote" placeholder="如：上次锻炼了什么">
-    </div>
-    <button class="btn green" onclick="fitCheckin()" style="margin-top:8px">✅ 立即打卡</button>
-  </div>
-
-  <div class="card">
-    <h2>📊 各部位锻炼次数</h2>
-    <div class="fit-chart" id="fitChart"></div>
-  </div>
-
-  <div class="card">
-    <h2>📅 最近 7 天</h2>
-    <div class="fit-cal" id="fitCal"></div>
-  </div>
-
-  <div class="card">
-    <h2>📋 打卡记录</h2>
-    <div id="fitRecords"></div>
-    <div id="fitEmpty" class="empty">暂无打卡记录</div>
-  </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ===== Supabase =====
@@ -391,7 +323,7 @@ async function dbClearFX(){
 // ===== i18n =====
 const I18N={
   zh:{
-    fx:'💱 汇率换算',ledger:'📝 记账均摊',fitness:'💪 健身打卡',
+    fx:'💱 汇率换算',ledger:'📝 记账均摊',
     fx_title:'💱 CNY ↔ INR 现金兑换计算器',
     direction:'方向',cny2inr:'人民币 → 印度卢比',inr2cny:'印度卢比 → 人民币',
     amount_cny:'输入金额 (CNY)',amount_inr:'输入金额 (INR)',
@@ -422,7 +354,7 @@ const I18N={
     person_stats_rmb:'约等于人民币',person_stats_no_data:'该人员暂无花销记录',
   },
   en:{
-    fx:'💱 FX Calculator',ledger:'📝 Expense Split',fitness:'💪 Fitness Check-in',
+    fx:'💱 FX Calculator',ledger:'📝 Expense Split',
     fx_title:'💱 CNY ↔ INR Cash Exchange Calculator',
     direction:'Direction',cny2inr:'CNY → INR',inr2cny:'INR → CNY',
     amount_cny:'Amount (CNY)',amount_inr:'Amount (INR)',
@@ -922,212 +854,12 @@ function toggleSettle(key){
   renderLedger();
 }
 
-// ===== 健身打卡 =====
-const FIT_CATS=['胸','背','腿','核心','臀/腿','体能','手臂','全身综合/恢复运动'];
-const FIT_COLORS=['#6c5ce7','#00d68f','#3b82f6','#ffd700','#ff9f43','#ff6b6b','#a29bfe','#00cec9'];
-let fitData=[];
-let fitSelectedCat='';
-
-async function fitFetch(method,path,body){
-  const headers={
-    'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'
-  };
-  const opts={method,headers};
-  if(body)opts.body=JSON.stringify(body);
-  if(method==='POST'||method==='DELETE')headers['Prefer']='return=minimal';
-  const url=SB_URL+'/rest/v1/checkins'+path;
-  const res=await fetch(url,opts);
-  if(method==='GET'&&res.ok)return res.json();
-  return res.ok;
-}
-
-async function fitLoad(){
-  try{
-    fitData=await fitFetch('GET','?select=id,date,category,note&order=date.desc,created_at.desc');
-  }catch(e){console.warn('fitLoad error:',e);fitData=[];}
-  if(!Array.isArray(fitData))fitData=[];
-  fitRenderStats();
-  fitRenderChart();
-  fitRenderCal();
-  fitRenderRecords();
-}
-
-function fitRenderStats(){
-  const today=new Date();
-  const todayStr=today.toISOString().slice(0,10);
-  const total=fitData.length;
-  
-  // This month
-  const ym=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0');
-  const monthCount=fitData.filter(r=>r.date&&r.date.startsWith(ym)).length;
-  
-  // This week (Mon-Sun)
-  const dayOfWeek=today.getDay()||7; // 1=Mon..7=Sun
-  const monday=new Date(today);
-  monday.setDate(today.getDate()-(dayOfWeek-1));
-  monday.setHours(0,0,0,0);
-  const sunday=new Date(monday);
-  sunday.setDate(monday.getDate()+6);
-  sunday.setHours(23,59,59,999);
-  const weekCount=fitData.filter(r=>{
-    if(!r.date)return false;
-    const d=new Date(r.date+'T00:00:00');
-    return d>=monday&&d<=sunday;
-  }).length;
-  
-  // Streak
-  const dates=new Set(fitData.filter(r=>r.date).map(r=>r.date));
-  let streak=0;
-  const checkDate=new Date(today);
-  // If not checked in today, start from yesterday
-  if(!dates.has(checkDate.toISOString().slice(0,10))){
-    checkDate.setDate(checkDate.getDate()-1);
-  }
-  while(dates.has(checkDate.toISOString().slice(0,10))){
-    streak++;
-    checkDate.setDate(checkDate.getDate()-1);
-  }
-  
-  $('fitStats').innerHTML=`
-    <div class="fit-stat"><div class="fit-stat-num" style="color:var(--accent)">${total}</div><div class="fit-stat-label">总打卡次数</div></div>
-    <div class="fit-stat"><div class="fit-stat-num" style="color:var(--green)">${monthCount}</div><div class="fit-stat-label">本月打卡</div></div>
-    <div class="fit-stat"><div class="fit-stat-num" style="color:var(--blue)">${weekCount}</div><div class="fit-stat-label">本周打卡</div></div>
-    <div class="fit-stat"><div class="fit-stat-num" style="color:var(--gold)">🔥${streak}</div><div class="fit-stat-label">连续打卡天数</div></div>
-  `;
-}
-
-function fitRenderChart(){
-  const counts={};
-  FIT_CATS.forEach(c=>counts[c]=0);
-  fitData.forEach(r=>{
-    if(r.category&&counts[r.category]!==undefined)counts[r.category]++;
-  });
-  // Also count any categories not in the list
-  fitData.forEach(r=>{
-    if(r.category&&!FIT_CATS.includes(r.category)){
-      counts[r.category]=(counts[r.category]||0)+1;
-    }
-  });
-  const max=Math.max(...Object.values(counts),1);
-  const entries=Object.entries(counts).filter(([k,v])=>v>0).sort((a,b)=>b[1]-a[1]);
-  const allEntries=entries.length>0?entries:Object.entries(counts).filter(([k,v])=>v>0);
-  
-  let html='';
-  // Show all categories that have count > 0
-  const sortedAll=Object.entries(counts).filter(([k,v])=>v>0).sort((a,b)=>b[1]-a[1]);
-  if(sortedAll.length===0){
-    html='<div class="empty">暂无数据</div>';
-  }else{
-    sortedAll.forEach(([cat,count])=>{
-      const idx=FIT_CATS.indexOf(cat);
-      const color=idx>=0?FIT_COLORS[idx]:'#6c5ce7';
-      const pct=(count/max*100).toFixed(1);
-      html+=`<div class="fit-bar-row">
-        <div class="fit-bar-label">${cat}</div>
-        <div class="fit-bar-track"><div class="fit-bar-fill" style="width:${pct}%;background:${color}">${count}</div></div>
-      </div>`;
-    });
-  }
-  $('fitChart').innerHTML=html;
-}
-
-function fitRenderCal(){
-  const today=new Date();
-  const dates=new Set(fitData.filter(r=>r.date).map(r=>r.date));
-  const todayStr=today.toISOString().slice(0,10);
-  const weekdays=['日','一','二','三','四','五','六'];
-  let html='';
-  for(let i=6;i>=0;i--){
-    const d=new Date(today);
-    d.setDate(today.getDate()-i);
-    const ds=d.toISOString().slice(0,10);
-    const done=dates.has(ds);
-    const isToday=ds===todayStr;
-    html+=`<div class="fit-cal-day ${done?'done':''} ${isToday?'today':''}">
-      <div class="cal-date">${d.getDate()}</div>
-      <div class="cal-weekday">${weekdays[d.getDay()]}</div>
-    </div>`;
-  }
-  $('fitCal').innerHTML=html;
-}
-
-function fitRenderRecords(){
-  const container=$('fitRecords');
-  if(!fitData.length){$('fitEmpty').style.display='block';container.innerHTML='';return;}
-  $('fitEmpty').style.display='none';
-  let html='';
-  fitData.forEach((r,i)=>{
-    const idx=FIT_CATS.indexOf(r.category);
-    const color=r.category&&idx>=0?FIT_COLORS[idx]:'var(--dim)';
-    html+=`<div class="fit-record">
-      <div>
-        <div class="fit-record-cat" ${r.category?`style="color:${color}"`:''}>${r.category||'（未分类）'}</div>
-        <div class="fit-record-date">${r.date||''}</div>
-        ${r.note?`<div class="fit-record-note">上次：${r.note}</div>`:''}
-      </div>
-      <button class="fit-del" onclick="fitDel(${r.id})">✕ 删除</button>
-    </div>`;
-  });
-  container.innerHTML=html;
-}
-
-function fitSelectCat(cat,btn){
-  fitSelectedCat=cat;
-  document.querySelectorAll('.fit-cat-btn').forEach(b=>b.classList.remove('selected'));
-  if(btn)btn.classList.add('selected');
-}
-
-async function fitCheckin(){
-  if(!fitSelectedCat){alert('请先选择锻炼部位');return;}
-  const note=$('fitNote').value.trim();
-  const date=new Date().toISOString().slice(0,10);
-  const ok=await fitFetch('POST','',{date,category:fitSelectedCat,note});
-  if(ok){
-    fitToast('打卡成功！💪');
-    $('fitNote').value='';
-    await fitLoad();
-  }else{
-    alert('打卡失败，请重试');
-  }
-}
-
-async function fitDel(id){
-  if(!confirm('确定删除这条打卡记录？'))return;
-  const ok=await fitFetch('DELETE','?id=eq.'+id);
-  if(ok){
-    await fitLoad();
-  }else{
-    alert('删除失败，请重试');
-  }
-}
-
-function fitToast(msg){
-  const t=document.createElement('div');
-  t.className='fit-toast';
-  t.textContent=msg;
-  document.body.appendChild(t);
-  setTimeout(()=>t.remove(),2000);
-}
-
-// Render category buttons
-function fitRenderCats(){
-  const grid=$('fitCatGrid');
-  let html='';
-  FIT_CATS.forEach((cat,i)=>{
-    const safeCat=cat.replace(/'/g,"\\'");
-    html+=`<button class="fit-cat-btn" data-cat="${i}" onclick="fitSelectCat(FIT_CATS[${i}],this)">${cat}</button>`;
-  });
-  grid.innerHTML=html;
-}
-
 // ===== 初始化 =====
 applyTheme();
 applyI18n();
 calcFX();
 renderFXHistory();
 loadData();
-fitRenderCats();
-fitLoad();
 </script>
 </body>
 </html>
