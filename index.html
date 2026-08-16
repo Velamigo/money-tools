@@ -173,28 +173,6 @@
   <div class="summary-bar" id="summary"></div>
 
   <div class="card">
-    <h2 data-i18n="ledger_detail">📊 账目明细</h2>
-    <table id="ledgerTable">
-      <thead><tr><th data-i18n="date">日期</th><th data-i18n="item_label">项目</th><th data-i18n="payer">付款人</th><th data-i18n="amount_label">金额</th><th>≈RMB</th><th style="cursor:pointer;user-select:none;white-space:nowrap" onclick="toggleRateDetail()" data-i18n="fx_rate">费率▼</th><th data-i18n="split_who">均摊人</th><th></th></tr></thead>
-    </table>
-    <div id="ledgerEmpty" class="empty" data-i18n="ledger_empty">暂无记录</div>
-  </div>
-
-  <div class="card">
-    <h2 data-i18n="person_stats">👤 个人花销统计</h2>
-    <p style="color:var(--dim);font-size:13px;margin-bottom:12px" data-i18n="person_stats_desc">点击名字查看个人花销明细</p>
-    <div id="personStats" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
-    <div id="personDetail"></div>
-  </div>
-
-  <div class="card">
-    <h2 data-i18n="settle_title">💸 结算建议</h2>
-    <p style="color:var(--dim);font-size:13px;margin-bottom:12px" data-i18n="settle_desc">按均摊计算，谁该给谁多少钱，使所有人净支出相等</p>
-    <div id="settleList"></div>
-    <div id="settleEmpty" class="empty" data-i18n="settle_empty">添加账目后自动生成结算方案</div>
-  </div>
-
-  <div class="card">
     <details style="margin-bottom:12px">
       <summary style="cursor:pointer;font-size:14px;color:var(--dim);padding:4px 0" data-i18n="person_mgmt">👥 人员管理</summary>
       <div style="margin-top:12px">
@@ -248,11 +226,35 @@
   </div>
 </div>
 
+  <div class="card">
+    <h2 data-i18n="ledger_detail">📊 账目明细</h2>
+    <table id="ledgerTable">
+      <thead><tr><th data-i18n="date">日期</th><th data-i18n="item_label">项目</th><th data-i18n="payer">付款人</th><th data-i18n="amount_label">金额</th><th>≈RMB</th><th style="cursor:pointer;user-select:none;white-space:nowrap" onclick="toggleRateDetail()" data-i18n="fx_rate">费率▼</th><th data-i18n="split_who">均摊人</th><th></th></tr></thead>
+    </table>
+    <div id="ledgerEmpty" class="empty" data-i18n="ledger_empty">暂无记录</div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="person_stats">👤 个人花销统计</h2>
+    <p style="color:var(--dim);font-size:13px;margin-bottom:12px" data-i18n="person_stats_desc">点击名字查看个人花销明细</p>
+    <div id="personStats" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+    <div id="personDetail"></div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="settle_title">💸 结算建议</h2>
+    <p style="color:var(--dim);font-size:13px;margin-bottom:12px" data-i18n="settle_desc">按均摊计算，谁该给谁多少钱，使所有人净支出相等</p>
+    <div id="settleList"></div>
+    <div id="settleEmpty" class="empty" data-i18n="settle_empty">添加账目后自动生成结算方案</div>
+  </div>
+
+
+
 <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script>
 // ===== Supabase =====
 const SB_URL='https://kpxfhrqkkhdetjmyhjqj.supabase.co';
-const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtweGZocnFra2hkZXRqbXloanFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4Mzg0MTMsImV4cCI6MjEwMjQxNDQxM30.w0Rqr7x1SYgzfi0YeJCtaRW_EcigUB0ALEj9N-7p1zU';
+const SB_KEY='eyJhbG...p1zU';
 let sb=null;
 function initSB(){
   try{
