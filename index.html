@@ -216,13 +216,20 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script>
 // ===== Supabase =====
 const SB_URL='https://kpxfhrqkkhdetjmyhjqj.supabase.co';
 const SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtweGZocnFra2hkZXRqbXloanFqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY4Mzg0MTMsImV4cCI6MjEwMjQxNDQxM30.w0Rqr7x1SYgzfi0YeJCtaRW_EcigUB0ALEj9N-7p1zU';
-let sb;
-try{sb=window.supabase.createClient(SB_URL,SB_KEY);}catch(e){console.warn('Supabase not loaded',e);sb=null;}
+let sb=null;
+function initSB(){
+  try{
+    if(typeof window.supabase!=='undefined'&&window.supabase.createClient){
+      sb=window.supabase.createClient(SB_URL,SB_KEY);
+      console.log('Supabase connected');
+    }else{console.warn('Supabase SDK not loaded, using localStorage');}
+  }catch(e){console.warn('Supabase init failed:',e);sb=null;}
+}
 
 // ===== 工具 =====
 const $=id=>document.getElementById(id);
@@ -608,6 +615,7 @@ function renderLedger(){
 }
 
 // ===== 初始化 =====
+initSB();
 applyTheme();
 applyI18n();
 calcFX();
