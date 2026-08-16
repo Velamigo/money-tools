@@ -441,10 +441,11 @@ function calcFX(){
     const cls=intlDiff>=0?'profit':'loss';
     const badge=intlDiff>=0?`<span class="badge badge-green">${t('profit_badge')}</span>`:`<span class="badge badge-red">${t('loss_badge')}</span>`;
     html+=`<div class="result-row"><span class="result-label">${t('pnl')} ${badge}</span><span class="result-value ${cls}">${intlDiff>=0?'+':''}${fmt(intlDiff)} ${curGot} (${diffPct>=0?'+':''}${diffPct.toFixed(2)}%)</span></div>`;
-    // 每1000 CNY 损失
-    const per1000=amt>0?(intlDiff/amt*1000):0;
+    // 每1000 CNY 损失多少 CNY（把 INR 盈亏按国际汇率换算回 CNY）
+    const diffCNY=intlR>0?(intlDiff/intlR):0;
+    const per1000=amt>0?(diffCNY/amt*1000):0;
     const per1000Label=lang==='zh'?'每 1000 CNY 损失':'Per 1000 CNY';
-    html+=`<div class="result-row"><span class="result-label">${per1000Label}</span><span class="result-value ${cls}">${per1000>=0?'+':''}${fmt(per1000)} ${curGot}</span></div>`;
+    html+=`<div class="result-row"><span class="result-label">${per1000Label}</span><span class="result-value ${cls}">${per1000>=0?'+':''}${fmt(per1000)} CNY</span></div>`;
   }
   $('fxResult').innerHTML=html;
 }
