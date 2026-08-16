@@ -183,8 +183,8 @@
         <label data-i18n="amount_label">金额</label>
         <input type="number" id="cost" step="0.01" placeholder="0.00">
         <select id="currency" style="margin-top:6px;font-size:13px;padding:8px">
-          <option value="CNY">CNY ¥</option>
           <option value="INR">INR ₹</option>
+          <option value="CNY">CNY ¥</option>
         </select>
       </div>
     </div>
@@ -225,7 +225,7 @@
   <div class="card">
     <h2 data-i18n="ledger_detail">📊 账目明细</h2>
     <table id="ledgerTable">
-      <thead><tr><th data-i18n="date">日期</th><th data-i18n="item_label">项目</th><th data-i18n="payer">付款人</th><th data-i18n="amount_label">金额</th><th data-i18n="split_who">均摊人</th><th></th></tr></thead>
+      <thead><tr><th data-i18n="date">日期</th><th data-i18n="item_label">项目</th><th data-i18n="payer">付款人</th><th data-i18n="amount_label">金额</th><th>≈ RMB</th><th data-i18n="split_who">均摊人</th><th></th></tr></thead>
     </table>
     <div id="ledgerEmpty" class="empty" data-i18n="ledger_empty">暂无记录</div>
   </div>
@@ -441,13 +441,48 @@ function calcFX(){
     const cls=intlDiff>=0?'profit':'loss';
     const badge=intlDiff>=0?`<span class="badge badge-green">${t('profit_badge')}</span>`:`<span class="badge badge-red">${t('loss_badge')}</span>`;
     html+=`<div class="result-row"><span class="result-label">${t('pnl')} ${badge}</span><span class="result-value ${cls}">${intlDiff>=0?'+':''}${fmt(intlDiff)} ${curGot} (${diffPct>=0?'+':''}${diffPct.toFixed(2)}%)</span></div>`;
-    // 每1000 CNY 损失多少 CNY（把 INR 盈亏按国际汇率换算回 CNY）
+    // 每单位 CNY 损失多少 CNY
     const diffCNY=intlR>0?(intlDiff/intlR):0;
-    const per1000=amt>0?(diffCNY/amt*1000):0;
-    const per1000Label=lang==='zh'?'每 1000 CNY 损失':'Per 1000 CNY';
-    html+=`<div class="result-row"><span class="result-label">${per1000Label}</span><span class="result-value ${cls}">${per1000>=0?'+':''}${fmt(per1000)} CNY</span></div>`;
+    const perUnit=amt>0?(diffCNY/amt):0;
+    const perUnitLabel=lang==='zh'?'每输入金额 CNY 损失':'Per input CNY';
+    html+=`<div class="result-row" style="flex-wrap:wrap"><span class="result-label">${perUnitLabel}</span><span style="display:flex;align-items:center;gap:8px"><input type="number" id="lossUnit" value="1000" style="width:80px;padding:6px 10px;font-size:14px" oninput="calcLoss()"> = <span class="result-value ${cls}" id="lossResult">${(perUnit*1000>=0?'+':'')}${fmt(perUnit*1000)} CNY</span></span></div>`;
   }
   $('fxResult').innerHTML=html;
+}
+
+// 获取实际有效汇率（扣手续费后，CNY→INR 的实际汇率）
+function getEffectiveRate(){
+  const myR=parseFloat($('myRate')?.value)||0;
+  const fee=parseFloat($('fee')?.value)||0;
+  const feeMode=$('feeMode')?.value||'deduct';
+  const amt=parseFloat($('amount')?.value)||10000;
+  if(myR<=0)return 11.5; // 默认值
+  const got=amt*myR;
+  const actualGot=feeMode==='deduct'?got-fee:got;
+  return amt>0?(actualGot/amt):myR; // 实际每 1 CNY 到手多少 INR
+}
+
+function calcLoss(){
+  const unit=parseFloat(document.getElementById('lossUnit')?.value)||1000;
+  const amt=parseFloat($('amount').value)||0;
+  const myR=parseFloat($('myRate').value)||0;
+  const intlR=parseFloat($('intlRate').value)||0;
+  const fee=parseFloat($('fee').value)||0;
+  const feeMode=$('feeMode').value;
+  if(amt<=0||intlR<=0)return;
+  const got=amt*myR;
+  const actualGot=feeMode==='deduct'?got-fee:got;
+  const intlGot=amt*intlR;
+  const intlDiff=actualGot-intlGot;
+  const diffCNY=intlDiff/intlR;
+  const perUnit=diffCNY/amt;
+  const result=perUnit*unit;
+  const el=document.getElementById('lossResult');
+  if(el){
+    const cls=result>=0?'profit':'loss';
+    el.className='result-value '+cls;
+    el.textContent=`${result>=0?'+':''}${fmt(result)} CNY`;
+  }
 }
 
 function saveFX(){
@@ -593,9 +628,12 @@ function renderLedger(){
       const payerIdx=persons.indexOf(e.payer);
       const cur=e.currency||'CNY';
       const sym=cur==='INR'?'₹':'¥';
+      // 等额 RMB：用实际汇率（扣手续费后）换算
+      const fxRate=cur==='INR'?(getEffectiveRate()):1;
+      const rmb=cur==='INR'?(e.cost/fxRate):e.cost;
       const tr=document.createElement('tr');
       const tags=e.splitWho.map(s=>{const idx=persons.indexOf(s);return `<span class="${tagColor(idx)}" style="font-size:11px">${s}</span>`}).join('');
-      tr.innerHTML=`<td>${e.date}</td><td>${e.item}${e.note?'<br><span style="color:var(--dim);font-size:12px">'+e.note+'</span>':''}</td><td><span class="${tagColor(payerIdx)}">${e.payer}</span></td><td>${sym}${fmt(e.cost)}</td><td>${tags}</td><td><button class="del" onclick="delEntry(${e.id})">✕</button></td>`;
+      tr.innerHTML=`<td>${e.date}</td><td>${e.item}${e.note?'<br><span style="color:var(--dim);font-size:12px">'+e.note+'</span>':''}</td><td><span class="${tagColor(payerIdx)}">${e.payer}</span></td><td>${sym}${fmt(e.cost)}</td><td style="color:var(--dim)">¥${fmt(rmb)}</td><td>${tags}</td><td><button class="del" onclick="delEntry(${e.id})">✕</button></td>`;
       tbody.appendChild(tr);
     });
     tb.appendChild(tbody);
