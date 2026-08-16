@@ -248,7 +248,7 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 // ===== Supabase =====
 const SB_URL='https://kpxfhrqkkhdetjmyhjqj.supabase.co';
@@ -266,13 +266,17 @@ function initSB(){
 }
 
 // 轮询等待 SDK 加载完
+let sbWaitCount=0;
 function waitForSB(){
   if(initSB()){
     loadData();
     renderFXHistory();
-  }else{
-    console.log('Waiting for Supabase SDK...');
+  }else if(sbWaitCount++<50){
     setTimeout(waitForSB,200);
+  }else{
+    console.warn('Supabase SDK timeout, using localStorage');
+    loadData();
+    renderFXHistory();
   }
 }
 
