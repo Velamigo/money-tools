@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>熏悟空工具箱</title>
+<title>印度行记账换钱小助手</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   :root{
@@ -276,7 +276,12 @@ async function dbDelPerson(name){
   const p=loadLS('persons').filter(x=>x!==name);saveLS('persons',p);
 }
 async function dbGetEntries(){
-  if(sb){const{data,error}=await sb.from('entries').select('*').order('created_at',{ascending:false});if(!error&&data)return data.map(e=>({...e,splitWho:e.split_who||[]}));}
+  if(sb){const{data,error}=await sb.from('entries').select('*').order('created_at',{ascending:false});if(!error&&data)return data.map(e=>{
+    let sw=e.split_who;
+    if(typeof sw==='string'){try{sw=JSON.parse(sw)}catch{sw=[]}}
+    if(!Array.isArray(sw))sw=[];
+    return{...e,splitWho:sw};
+  });}
   return loadLS('entries');
 }
 async function dbAddEntry(e){
