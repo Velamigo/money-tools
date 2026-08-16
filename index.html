@@ -248,7 +248,7 @@
   </div>
 </div>
 
-<script src="https://unpkg.com/@supabase/supabase-js@2" onload="onSBSdkLoaded()" onerror="console.warn('Supabase SDK failed to load')"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
 <script>
 // ===== Supabase =====
 const SB_URL='https://kpxfhrqkkhdetjmyhjqj.supabase.co';
@@ -260,16 +260,19 @@ function initSB(){
       sb=window.supabase.createClient(SB_URL,SB_KEY);
       console.log('Supabase connected');
       return true;
-    }else{console.warn('Supabase SDK not loaded, using localStorage');}
+    }
   }catch(e){console.warn('Supabase init failed:',e);}
   return false;
 }
 
-// SDK 加载完成后重新初始化并重新加载数据
-function onSBSdkLoaded(){
+// 轮询等待 SDK 加载完
+function waitForSB(){
   if(initSB()){
     loadData();
     renderFXHistory();
+  }else{
+    console.log('Waiting for Supabase SDK...');
+    setTimeout(waitForSB,200);
   }
 }
 
@@ -872,12 +875,11 @@ function toggleSettle(key){
 }
 
 // ===== 初始化 =====
-initSB();
 applyTheme();
 applyI18n();
 calcFX();
 renderFXHistory();
-loadData();
+waitForSB();
 </script>
 </body>
 </html>
