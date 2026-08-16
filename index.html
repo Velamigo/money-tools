@@ -226,6 +226,7 @@ try{sb=window.supabase.createClient(SB_URL,SB_KEY);}catch(e){console.warn('Supab
 
 // ===== 工具 =====
 const $=id=>document.getElementById(id);
+let lang=localStorage.getItem('lang')||'zh';
 const fmt=n=>Math.abs(n).toLocaleString(lang==='zh'?'zh-CN':'en-US',{maximumFractionDigits:2});
 const todayStr=()=>new Date().toISOString().slice(0,10);
 const tagColor=i=>`person-tag tag-${i%6}`;
@@ -331,7 +332,6 @@ const I18N={
     settle_arrow:'→ pays →',
   }
 };
-let lang=localStorage.getItem('lang')||'zh';
 function t(k){return I18N[lang][k]||k;}
 function applyI18n(){
   document.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n);});
@@ -357,14 +357,6 @@ function toggleTheme(){
   localStorage.setItem('theme',theme);
   applyTheme();
 }
-
-// ===== 工具 =====
-const $=id=>document.getElementById(id);
-const fmt=n=>Math.abs(n).toLocaleString(lang==='zh'?'zh-CN':'en-US',{maximumFractionDigits:2});
-const todayStr=()=>new Date().toISOString().slice(0,10);
-const tagColor=i=>`person-tag tag-${i%6}`;
-const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
-const load=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]')}catch{return[]}};
 
 // ===== 页面切换 =====
 function showPage(id,btn){
