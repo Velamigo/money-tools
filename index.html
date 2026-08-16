@@ -173,6 +173,20 @@
   <div class="summary-bar" id="summary"></div>
 
   <div class="card">
+    <details style="margin-bottom:12px">
+      <summary style="cursor:pointer;font-size:14px;color:var(--dim);padding:4px 0" data-i18n="person_mgmt">👥 人员管理</summary>
+      <div style="margin-top:12px">
+        <div class="row">
+          <div class="input-group" style="flex:0 0 70%">
+            <input type="text" id="newPerson" data-i18n-ph="person_ph" placeholder="输入名字，回车添加" onkeydown="if(event.key==='Enter')addPerson()">
+          </div>
+          <div class="input-group" style="flex:1;display:flex;align-items:flex-end">
+            <button class="btn sm" onclick="addPerson()" data-i18n="add">添加</button>
+          </div>
+        </div>
+        <div id="personList" style="margin-top:12px"></div>
+      </div>
+    </details>
     <h2 data-i18n="add_entry">📝 新增一笔</h2>
     <div class="row">
       <div class="input-group">
@@ -207,19 +221,6 @@
       <div id="splitWho" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
     </div>
     <button class="btn" onclick="addEntry()" data-i18n="add">+ 添加</button>
-  </div>
-
-  <div class="card">
-    <h2 data-i18n="person_mgmt">👥 人员管理</h2>
-    <div class="row">
-      <div class="input-group" style="flex:0 0 70%">
-        <input type="text" id="newPerson" data-i18n-ph="person_ph" placeholder="输入名字，回车添加" onkeydown="if(event.key==='Enter')addPerson()">
-      </div>
-      <div class="input-group" style="flex:1;display:flex;align-items:flex-end">
-        <button class="btn sm" onclick="addPerson()" data-i18n="add">添加</button>
-      </div>
-    </div>
-    <div id="personList" style="margin-top:12px"></div>
   </div>
 
   <div class="card">
