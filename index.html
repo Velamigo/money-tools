@@ -258,7 +258,15 @@ async function dbGetEntries(){
   return loadLS('entries');
 }
 async function dbAddEntry(e){
-  if(sb){const{error}=await sb.from('entries').insert({...e,split_who:JSON.stringify(e.splitWho)});return;}
+  if(sb){
+    const{error}=await sb.from('entries').insert({
+      id:e.id,item:e.item,cost:e.cost,currency:e.currency,
+      payer:e.payer,date:e.date,note:e.note,
+      split_who:JSON.stringify(e.splitWho)
+    });
+    if(error)console.warn('dbAddEntry error:',error);
+    return;
+  }
   const a=loadLS('entries');a.push(e);saveLS('entries',a);
 }
 async function dbDelEntry(id){
