@@ -173,6 +173,28 @@
   <div class="summary-bar" id="summary"></div>
 
   <div class="card">
+    <h2 data-i18n="ledger_detail">📊 账目明细</h2>
+    <table id="ledgerTable">
+      <thead><tr><th data-i18n="date">日期</th><th data-i18n="item_label">项目</th><th data-i18n="payer">付款人</th><th data-i18n="amount_label">金额</th><th>≈RMB</th><th style="cursor:pointer;user-select:none;white-space:nowrap" onclick="toggleRateDetail()" data-i18n="fx_rate">费率▼</th><th data-i18n="split_who">均摊人</th><th></th></tr></thead>
+    </table>
+    <div id="ledgerEmpty" class="empty" data-i18n="ledger_empty">暂无记录</div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="person_stats">👤 个人花销统计</h2>
+    <p style="color:var(--dim);font-size:13px;margin-bottom:12px" data-i18n="person_stats_desc">点击名字查看个人花销明细</p>
+    <div id="personStats" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+    <div id="personDetail"></div>
+  </div>
+
+  <div class="card">
+    <h2 data-i18n="settle_title">💸 结算建议</h2>
+    <p style="color:var(--dim);font-size:13px;margin-bottom:12px" data-i18n="settle_desc">按均摊计算，谁该给谁多少钱，使所有人净支出相等</p>
+    <div id="settleList"></div>
+    <div id="settleEmpty" class="empty" data-i18n="settle_empty">添加账目后自动生成结算方案</div>
+  </div>
+
+  <div class="card">
     <details style="margin-bottom:12px">
       <summary style="cursor:pointer;font-size:14px;color:var(--dim);padding:4px 0" data-i18n="person_mgmt">👥 人员管理</summary>
       <div style="margin-top:12px">
@@ -223,21 +245,6 @@
       <div id="splitWho" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
     </div>
     <button class="btn" onclick="addEntry()" data-i18n="add">+ 添加</button>
-  </div>
-
-  <div class="card">
-    <h2 data-i18n="ledger_detail">📊 账目明细</h2>
-    <table id="ledgerTable">
-      <thead><tr><th data-i18n="date">日期</th><th data-i18n="item_label">项目</th><th data-i18n="payer">付款人</th><th data-i18n="amount_label">金额</th><th>≈RMB</th><th style="cursor:pointer;user-select:none;white-space:nowrap" onclick="toggleRateDetail()" data-i18n="fx_rate">费率▼</th><th data-i18n="split_who">均摊人</th><th></th></tr></thead>
-    </table>
-    <div id="ledgerEmpty" class="empty" data-i18n="ledger_empty">暂无记录</div>
-  </div>
-
-  <div class="card">
-    <h2 data-i18n="settle_title">💸 结算建议</h2>
-    <p style="color:var(--dim);font-size:13px;margin-bottom:12px" data-i18n="settle_desc">按均摊计算，谁该给谁多少钱，使所有人净支出相等</p>
-    <div id="settleList"></div>
-    <div id="settleEmpty" class="empty" data-i18n="settle_empty">添加账目后自动生成结算方案</div>
   </div>
 </div>
 
@@ -349,6 +356,9 @@ const I18N={
     in_records:'在账目中有记录，确定删除？',
     settle_arrow:'→ 给 →',
     fx_rate:'折算费率',
+    person_stats:'👤 个人花销统计',person_stats_desc:'点击名字查看个人花销明细',
+    person_stats_total:'总花销',person_stats_currency:'各币种',
+    person_stats_rmb:'约等于人民币',person_stats_no_data:'该人员暂无花销记录',
   },
   en:{
     fx:'💱 FX Calculator',ledger:'📝 Expense Split',
@@ -377,6 +387,9 @@ const I18N={
     in_records:'has records, confirm delete?',
     settle_arrow:'→ pays →',
     fx_rate:'FX Rate',
+    person_stats:'👤 Person Stats',person_stats_desc:'Click a name to see spending detail',
+    person_stats_total:'Total',person_stats_currency:'By Currency',
+    person_stats_rmb:'≈ RMB',person_stats_no_data:'No spending records for this person',
   }
 };
 function t(k){return I18N[lang][k]||k;}
@@ -472,6 +485,83 @@ function toggleRateDetail(){
   const rows=document.querySelectorAll('.rate-detail');
   const visible=[...rows].some(r=>r.style.display!=='none');
   rows.forEach(r=>{r.style.display=visible?'none':'table-row';});
+}
+
+// 个人花销统计
+const symMap={INR:'₹',CNY:'¥',USD:'$',SGD:'S$'};
+const rateMap={INR:()=>getEffectiveRate(),CNY:()=>1,USD:()=>7.2,SGD:()=>5.4};
+
+function renderPersonStats(){
+  const container=$('personStats');
+  container.innerHTML='';
+  persons.forEach((p,i)=>{
+    const pEntries=entries.filter(e=>e.payer===p);
+    const total=pEntries.reduce((s,e)=>s+e.cost,0);
+    const btn=document.createElement('button');
+    btn.className=tagColor(i);
+    btn.style.cssText='border:none;cursor:pointer;padding:8px 16px;font-size:14px;font-weight:600;border-radius:20px';
+    btn.textContent=`${p} (${symMap.CNY}${total>0?fmt(total):'0'})`;
+    btn.onclick=()=>showPersonDetail(p);
+    container.appendChild(btn);
+  });
+}
+
+function showPersonDetail(name){
+  const detail=$('personDetail');
+  const pEntries=entries.filter(e=>e.payer===name);
+  if(!pEntries.length){
+    detail.innerHTML=`<div class="empty">${t('person_stats_no_data')}</div>`;
+    return;
+  }
+  // 按币种统计
+  const byCur={};
+  let totalRMB=0;
+  pEntries.forEach(e=>{
+    const cur=e.currency||'CNY';
+    if(!byCur[cur])byCur[cur]={count:0,total:0,items:[]};
+    byCur[cur].count++;
+    byCur[cur].total+=e.cost;
+    byCur[cur].items.push(e);
+    const rate=rateMap[cur]||(()=>1);
+    totalRMB+=cur==='CNY'?e.cost:(e.cost/rate());
+  });
+
+  let html=`<div style="background:var(--input-bg);border:1px solid var(--border);border-radius:12px;padding:16px">`;
+  // 各币种汇总
+  html+=`<div style="font-size:14px;font-weight:700;margin-bottom:12px">${t('person_stats_currency')}</div>`;
+  html+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:16px">`;
+  for(const cur of ['INR','CNY','USD','SGD']){
+    if(!byCur[cur])continue;
+    const sym=symMap[cur]||'¥';
+    html+=`<div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center">
+      <div style="font-size:12px;color:var(--dim)">${cur}</div>
+      <div style="font-size:18px;font-weight:700">${sym}${fmt(byCur[cur].total)}</div>
+      <div style="font-size:11px;color:var(--dim)">${byCur[cur].count} ${lang==='zh'?'笔':'items'}</div>
+    </div>`;
+  }
+  html+=`</div>`;
+  // 约等于人民币
+  html+=`<div style="text-align:right;font-size:16px;font-weight:700;color:var(--accent);margin-bottom:16px">${t('person_stats_rmb')}: ¥${fmt(totalRMB)}</div>`;
+  // 明细列表
+  html+=`<div style="font-size:14px;font-weight:700;margin-bottom:8px">${lang==='zh'?'花销明细':'Detail'}</div>`;
+  pEntries.forEach(e=>{
+    const cur=e.currency||'CNY';
+    const sym=symMap[cur]||'¥';
+    const rate=rateMap[cur]||(()=>1);
+    const rmb=cur==='CNY'?e.cost:(e.cost/rate());
+    html+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
+      <div>
+        <div style="font-size:14px;font-weight:600">${e.item}</div>
+        <div style="font-size:12px;color:var(--dim)">${e.date}${e.note?' · '+e.note:''}</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:15px;font-weight:700">${sym}${fmt(e.cost)}</div>
+        <div style="font-size:12px;color:var(--dim)">≈¥${fmt(rmb)}</div>
+      </div>
+    </div>`;
+  });
+  html+=`</div>`;
+  detail.innerHTML=html;
 }
 
 function calcLoss(){
@@ -759,6 +849,7 @@ function renderLedger(){
       sl.appendChild(div);
     });
   }
+  renderPersonStats();
 }
 
 function toggleSettle(key){
