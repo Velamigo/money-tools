@@ -113,13 +113,13 @@
 
     <div class="row">
       <div class="input-group">
-        <label>手续费/汇率差 (CNY)</label>
+        <label>手续费 (INR)</label>
         <input type="number" id="fee" value="0" step="0.01" oninput="calcFX()" placeholder="手续费">
       </div>
       <div class="input-group">
         <label>手续费扣除方式</label>
         <select id="feeMode" onchange="calcFX()">
-          <option value="deduct">从输入金额中扣除</option>
+          <option value="deduct">从到手金额中扣除</option>
           <option value="extra">额外支付</option>
         </select>
       </div>
@@ -152,8 +152,12 @@
         <input type="text" id="item" placeholder="如：午餐、打车">
       </div>
       <div class="input-group">
-        <label>金额 (CNY)</label>
+        <label>金额</label>
         <input type="number" id="cost" step="0.01" placeholder="0.00">
+        <select id="currency" style="margin-top:6px;font-size:13px;padding:8px">
+          <option value="CNY">CNY ¥</option>
+          <option value="INR">INR ₹</option>
+        </select>
       </div>
     </div>
     <div class="row">
@@ -235,28 +239,27 @@ function calcFX(){
   const isC2I=dir==='cny2inr';
   $('amountLabel').textContent=isC2I?'输入金额 (CNY)':'输入金额 (INR)';
 
-  let actualAmt=amt;
-  if(feeMode==='deduct') actualAmt=amt-fee;
-
-  const got=actualAmt*myR;
-  const intlGot=actualAmt*intlR;
-  const diff=got-intlGot;
-  const diffPct=intlGot>0?(diff/intlGot*100):0;
+  const got=amt*myR;
+  const intlGot=amt*intlR;
+  const feeInINR=fee;
+  const actualGot=feeMode==='deduct'?got-feeInINR:got;
+  const intlDiff=actualGot-intlGot;
+  const diffPct=intlGot>0?(intlDiff/intlGot*100):0;
 
   let html=`<div class="result-row"><span class="result-label">输入金额</span><span class="result-value">${fmt(amt)} ${isC2I?'CNY':'INR'}</span></div>`;
   if(fee>0){
-    html+=`<div class="result-row"><span class="result-label">手续费</span><span class="result-value loss">-${fmt(fee)} CNY</span></div>`;
-    html+=`<div class="result-row"><span class="result-label">实际兑换金额</span><span class="result-value">${fmt(actualAmt)} ${isC2I?'CNY':'INR'}</span></div>`;
+    html+=`<div class="result-row"><span class="result-label">手续费</span><span class="result-value loss">-${fmt(fee)} INR</span></div>`;
+    html+=`<div class="result-row"><span class="result-label">兑换到手（扣手续费前）</span><span class="result-value">${fmt(got)} ${isC2I?'INR':'CNY'}</span></div>`;
   }
   html+=`<div class="result-row"><span class="result-label">我的汇率</span><span class="result-value">1 ${isC2I?'CNY':'INR'} = ${myR} ${isC2I?'INR':'CNY'}</span></div>`;
   html+=`<div class="result-row"><span class="result-label">国际参考汇率</span><span class="result-value" style="color:var(--dim)">1 ${isC2I?'CNY':'INR'} = ${intlR} ${isC2I?'INR':'CNY'}</span></div>`;
-  html+=`<div class="result-row" style="border-top:2px solid var(--border);margin-top:8px;padding-top:16px"><span class="result-label" style="font-size:16px;font-weight:700">到手金额</span><span class="result-value" style="font-size:28px;color:var(--green)">${fmt(got)} ${isC2I?'INR':'CNY'}</span></div>`;
+  html+=`<div class="result-row" style="border-top:2px solid var(--border);margin-top:8px;padding-top:16px"><span class="result-label" style="font-size:16px;font-weight:700">实际到手</span><span class="result-value" style="font-size:28px;color:var(--green)">${fmt(actualGot)} ${isC2I?'INR':'CNY'}</span></div>`;
   html+=`<div class="result-row"><span class="result-label">按国际汇率应得</span><span class="result-value" style="color:var(--dim)">${fmt(intlGot)} ${isC2I?'INR':'CNY'}</span></div>`;
 
   if(intlR>0){
-    const cls=diff>=0?'profit':'loss';
-    const badge=diff>=0?'<span class="badge badge-green">赚了</span>':'<span class="badge badge-red">亏了</span>';
-    html+=`<div class="result-row"><span class="result-label">盈亏 ${badge}</span><span class="result-value ${cls}">${diff>=0?'+':''}${fmt(diff)} ${isC2I?'INR':'CNY'} (${diffPct>=0?'+':''}${diffPct.toFixed(2)}%)</span></div>`;
+    const cls=intlDiff>=0?'profit':'loss';
+    const badge=intlDiff>=0?'<span class="badge badge-green">赚了</span>':'<span class="badge badge-red">亏了</span>';
+    html+=`<div class="result-row"><span class="result-label">盈亏 ${badge}</span><span class="result-value ${cls}">${intlDiff>=0?'+':''}${fmt(intlDiff)} ${isC2I?'INR':'CNY'} (${diffPct>=0?'+':''}${diffPct.toFixed(2)}%)</span></div>`;
   }
   $('fxResult').innerHTML=html;
 }
@@ -268,13 +271,13 @@ function saveFX(){
   const intlR=parseFloat($('intlRate').value)||0;
   const fee=parseFloat($('fee').value)||0;
   const feeMode=$('feeMode').value;
-  const actual=feeMode==='deduct'?amt-fee:amt;
-  const got=actual*myR;
-  const intlGot=actual*intlR;
-  const diff=got-intlGot;
+  const got=amt*myR;
+  const intlGot=amt*intlR;
+  const actual=feeMode==='deduct'?got-fee:got;
+  const intlDiff=actual-intlGot;
 
   const h=load('fx_history');
-  h.unshift({date:todayStr(),dir,amount:amt,myRate:myR,intlRate:intlR,fee,got,intlGot,diff});
+  h.unshift({date:todayStr(),dir,amount:amt,myRate:myR,intlRate:intlR,fee,got:actual,intlGot,diff:intlDiff});
   save('fx_history',h);
   renderFXHistory();
 }
@@ -374,6 +377,7 @@ function delPerson(i){
 function addEntry(){
   const item=$('item').value.trim();
   const cost=parseFloat($('cost').value);
+  const currency=$('currency').value;
   const payer=$('payer').value;
   const date=$('date').value;
   const note=$('note').value.trim();
@@ -382,7 +386,7 @@ function addEntry(){
   if(!item||!cost||!payer){alert('请填写项目、金额和付款人');return;}
   if(!splitWho.length){alert('请至少勾选一个均摊人');return;}
 
-  entries.push({id:Date.now(),item,cost,payer,date,note,splitWho});
+  entries.push({id:Date.now(),item,cost,currency,payer,date,note,splitWho});
   save('entries',entries);
   $('item').value='';$('cost').value='';$('note').value='';
   $('date').value=todayStr();
@@ -403,9 +407,11 @@ function renderLedger(){
     const tbody=document.createElement('tbody');
     [...entries].reverse().forEach(e=>{
       const payerIdx=persons.indexOf(e.payer);
+      const cur=e.currency||'CNY';
+      const sym=cur==='INR'?'₹':'¥';
       const tr=document.createElement('tr');
       const tags=e.splitWho.map(s=>{const idx=persons.indexOf(s);return `<span class="${tagColor(idx)}" style="font-size:11px">${s}</span>`}).join('');
-      tr.innerHTML=`<td>${e.date}</td><td>${e.item}${e.note?'<br><span style="color:var(--dim);font-size:12px">'+e.note+'</span>':''}</td><td><span class="${tagColor(payerIdx)}">${e.payer}</span></td><td>¥${fmt(e.cost)}</td><td>${tags}</td><td><button class="del" onclick="delEntry(${e.id})">✕</button></td>`;
+      tr.innerHTML=`<td>${e.date}</td><td>${e.item}${e.note?'<br><span style="color:var(--dim);font-size:12px">'+e.note+'</span>':''}</td><td><span class="${tagColor(payerIdx)}">${e.payer}</span></td><td>${sym}${fmt(e.cost)}</td><td>${tags}</td><td><button class="del" onclick="delEntry(${e.id})">✕</button></td>`;
       tbody.appendChild(tr);
     });
     tb.appendChild(tbody);
@@ -413,33 +419,43 @@ function renderLedger(){
 
   // 汇总
   const total=entries.reduce((s,e)=>s+e.cost,0);
+  const totalCNY=entries.filter(e=>(e.currency||'CNY')==='CNY').reduce((s,e)=>s+e.cost,0);
+  const totalINR=entries.filter(e=>e.currency==='INR').reduce((s,e)=>s+e.cost,0);
   const personNet={};
-  persons.forEach(p=>personNet[p]=0);
+  persons.forEach(p=>personNet[p]={CNY:0,INR:0});
   entries.forEach(e=>{
+    const cur=e.currency||'CNY';
     const share=e.cost/e.splitWho.length;
-    e.splitWho.forEach(s=>personNet[s]=(personNet[s]||0)-share);
-    personNet[e.payer]=(personNet[e.payer]||0)+e.cost;
+    e.splitWho.forEach(s=>{
+      personNet[s]=(personNet[s]||{CNY:0,INR:0});
+      personNet[s][cur]=(personNet[s][cur]||0)-share;
+    });
+    personNet[e.payer]=(personNet[e.payer]||{CNY:0,INR:0});
+    personNet[e.payer][cur]=(personNet[e.payer][cur]||0)+e.cost;
   });
-  const maxNet=Math.max(...Object.values(personNet),0);
-  const minNet=Math.min(...Object.values(personNet),0);
+  const allNet=Object.values(personNet);
+  const maxNet=Math.max(...allNet.map(n=>n.CNY),0);
+  const minNet=Math.min(...allNet.map(n=>n.CNY),0);
   $('summary').innerHTML=`
-    <div class="summary-item"><div class="summary-num" style="color:var(--accent)">¥${fmt(total)}</div><div class="summary-label">总支出</div></div>
-    <div class="summary-item"><div class="summary-num" style="color:var(--green)">¥${fmt(maxNet)}</div><div class="summary-label">最多垫付</div></div>
-    <div class="summary-item"><div class="summary-num" style="color:var(--red)">¥${fmt(Math.abs(minNet))}</div><div class="summary-label">最多应付</div></div>`;
+    <div class="summary-item"><div class="summary-num" style="color:var(--accent)">${totalCNY>0?'¥'+fmt(totalCNY):''}${totalCNY>0&&totalINR>0?' / ':''}${totalINR>0?'₹'+fmt(totalINR):''}</div><div class="summary-label">总支出</div></div>
+    <div class="summary-item"><div class="summary-num" style="color:var(--green)">¥${fmt(maxNet)}</div><div class="summary-label">最多垫付 (CNY)</div></div>
+    <div class="summary-item"><div class="summary-num" style="color:var(--red)">¥${fmt(Math.abs(minNet))}</div><div class="summary-label">最多应付 (CNY)</div></div>`;
 
-  // 结算
-  const balances=Object.entries(personNet).map(([p,v])=>({p,v}));
-  const debtors=balances.filter(b=>b.v<0).sort((a,b)=>a.v-b.v);
-  const creditors=balances.filter(b=>b.v>0).sort((a,b)=>b.v-a.v);
+  // 结算（按货币分别计算）
   const settles=[];
-  let di=0,ci=0;
-  while(di<debtors.length&&ci<creditors.length){
-    const d=debtors[di],c=creditors[ci];
-    const pay=Math.min(-d.v,c.v);
-    settles.push({from:d.p,to:c.p,amount:pay});
-    d.v+=pay;c.v-=pay;
-    if(Math.abs(d.v)<0.01)di++;
-    if(Math.abs(c.v)<0.01)ci++;
+  for(const cur of ['CNY','INR']){
+    const balances=Object.entries(personNet).map(([p,v])=>({p,v:v[cur]||0}));
+    const debtors=balances.filter(b=>b.v<-0.01).sort((a,b)=>a.v-b.v);
+    const creditors=balances.filter(b=>b.v>0.01).sort((a,b)=>b.v-a.v);
+    let di=0,ci=0;
+    while(di<debtors.length&&ci<creditors.length){
+      const d=debtors[di],c=creditors[ci];
+      const pay=Math.min(-d.v,c.v);
+      settles.push({from:d.p,to:c.p,amount:pay,currency:cur});
+      d.v+=pay;c.v-=pay;
+      if(Math.abs(d.v)<0.01)di++;
+      if(Math.abs(c.v)<0.01)ci++;
+    }
   }
 
   const sl=$('settleList');
@@ -449,9 +465,10 @@ function renderLedger(){
   settles.forEach(s=>{
     const fromIdx=persons.indexOf(s.from);
     const toIdx=persons.indexOf(s.to);
+    const sym=s.currency==='INR'?'₹':'¥';
     const div=document.createElement('div');
     div.className='settle-card';
-    div.innerHTML=`<div><span class="${tagColor(fromIdx)}" style="font-size:16px">${s.from}</span><span class="settle-arrow">→ 给 →</span><span class="${tagColor(toIdx)}" style="font-size:16px">${s.to}</span></div><div class="settle-amount">¥${fmt(s.amount)}</div>`;
+    div.innerHTML=`<div><span class="${tagColor(fromIdx)}" style="font-size:16px">${s.from}</span><span class="settle-arrow">→ 给 →</span><span class="${tagColor(toIdx)}" style="font-size:16px">${s.to}</span></div><div class="settle-amount">${sym}${fmt(s.amount)}</div>`;
     sl.appendChild(div);
   });
 }
