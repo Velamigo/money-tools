@@ -199,6 +199,8 @@
         <select id="currency" style="margin-top:6px;font-size:13px;padding:8px">
           <option value="INR">INR ₹</option>
           <option value="CNY">CNY ¥</option>
+          <option value="USD">USD $</option>
+          <option value="SGD">SGD S$</option>
         </select>
       </div>
     </div>
@@ -637,9 +639,10 @@ function renderLedger(){
     [...entries].reverse().forEach(e=>{
       const payerIdx=persons.indexOf(e.payer);
       const cur=e.currency||'CNY';
-      const sym=cur==='INR'?'₹':'¥';
-      const fxRate=cur==='INR'?(getEffectiveRate()):1;
-      const rmb=cur==='INR'?(e.cost/fxRate):e.cost;
+      const sym={INR:'₹',CNY:'¥',USD:'$',SGD:'S$'}[cur]||'¥';
+      // 等额 RMB：INR 用有效汇率，USD/SGD 用固定汇率
+      const fxRate=cur==='INR'?(getEffectiveRate()):cur==='USD'?(7.2):cur==='SGD'?(5.4):1;
+      const rmb=cur==='CNY'?e.cost:(e.cost/fxRate);
       const tr=document.createElement('tr');
       const tags=e.splitWho.map(s=>{const idx=persons.indexOf(s);return `<span class="${tagColor(idx)}" style="font-size:11px">${s}</span>`}).join('');
       tr.innerHTML=`<td>${e.date}</td><td>${e.item}${e.note?'<br><span style="color:var(--dim);font-size:12px">'+e.note+'</span>':''}</td><td><span class="${tagColor(payerIdx)}">${e.payer}</span></td><td>${sym}${fmt(e.cost)}</td><td style="color:var(--dim)">¥${fmt(rmb)}</td><td style="color:var(--dim);font-size:12px;white-space:nowrap">${cur==='INR'?'1¥='+fxRate.toFixed(2)+'₹':'—'}</td><td>${tags}</td><td><button class="del" onclick="delEntry(${e.id})">✕</button></td>`;
@@ -673,28 +676,36 @@ function renderLedger(){
 
   const totalCNY=entries.filter(e=>(e.currency||'CNY')==='CNY').reduce((s,e)=>s+e.cost,0);
   const totalINR=entries.filter(e=>e.currency==='INR').reduce((s,e)=>s+e.cost,0);
+  const totalUSD=entries.filter(e=>e.currency==='USD').reduce((s,e)=>s+e.cost,0);
+  const totalSGD=entries.filter(e=>e.currency==='SGD').reduce((s,e)=>s+e.cost,0);
+  const totals=[];
+  if(totalCNY>0)totals.push('¥'+fmt(totalCNY));
+  if(totalINR>0)totals.push('₹'+fmt(totalINR));
+  if(totalUSD>0)totals.push('$'+fmt(totalUSD));
+  if(totalSGD>0)totals.push('S$'+fmt(totalSGD));
+  const totalStr=totals.join(' / ');
   const personNet={};
-  persons.forEach(p=>personNet[p]={CNY:0,INR:0});
+  persons.forEach(p=>personNet[p]={CNY:0,INR:0,USD:0,SGD:0});
   entries.forEach(e=>{
     const cur=e.currency||'CNY';
     const share=e.cost/e.splitWho.length;
     e.splitWho.forEach(s=>{
-      personNet[s]=(personNet[s]||{CNY:0,INR:0});
+      personNet[s]=(personNet[s]||{CNY:0,INR:0,USD:0,SGD:0});
       personNet[s][cur]=(personNet[s][cur]||0)-share;
     });
-    personNet[e.payer]=(personNet[e.payer]||{CNY:0,INR:0});
+    personNet[e.payer]=(personNet[e.payer]||{CNY:0,INR:0,USD:0,SGD:0});
     personNet[e.payer][cur]=(personNet[e.payer][cur]||0)+e.cost;
   });
   const allNet=Object.values(personNet);
   const maxNet=Math.max(...allNet.map(n=>n.CNY),0);
   const minNet=Math.min(...allNet.map(n=>n.CNY),0);
   $('summary').innerHTML=`
-    <div class="summary-item"><div class="summary-num" style="color:var(--accent)">${totalCNY>0?'¥'+fmt(totalCNY):''}${totalCNY>0&&totalINR>0?' / ':''}${totalINR>0?'₹'+fmt(totalINR):''}</div><div class="summary-label">${t('total_spent')}</div></div>
+    <div class="summary-item"><div class="summary-num" style="color:var(--accent)">${totalStr||'¥0'}</div><div class="summary-label">${t('total_spent')}</div></div>
     <div class="summary-item"><div class="summary-num" style="color:var(--green)">¥${fmt(maxNet)}</div><div class="summary-label">${t('max_paid')}</div></div>
     <div class="summary-item"><div class="summary-num" style="color:var(--red)">¥${fmt(Math.abs(minNet))}</div><div class="summary-label">${t('max_owe')}</div></div>`;
 
   const settles=[];
-  for(const cur of ['CNY','INR']){
+  for(const cur of ['CNY','INR','USD','SGD']){
     const balances=Object.entries(personNet).map(([p,v])=>({p,v:v[cur]||0}));
     const debtors=balances.filter(b=>b.v<-0.01).sort((a,b)=>a.v-b.v);
     const creditors=balances.filter(b=>b.v>0.01).sort((a,b)=>b.v-a.v);
@@ -713,15 +724,50 @@ function renderLedger(){
   sl.innerHTML='';
   if(!settles.length){$('settleEmpty').style.display='block';return;}
   $('settleEmpty').style.display='none';
-  settles.forEach(s=>{
-    const fromIdx=persons.indexOf(s.from);
-    const toIdx=persons.indexOf(s.to);
-    const sym=s.currency==='INR'?'₹':'¥';
-    const div=document.createElement('div');
-    div.className='settle-card';
-    div.innerHTML=`<div><span class="${tagColor(fromIdx)}" style="font-size:16px">${s.from}</span><span class="settle-arrow">${t('settle_arrow')}</span><span class="${tagColor(toIdx)}" style="font-size:16px">${s.to}</span></div><div class="settle-amount">${sym}${fmt(s.amount)}</div>`;
-    sl.appendChild(div);
-  });
+  
+  // 按货币分组显示
+  const symMap={CNY:'¥',INR:'₹',USD:'$',SGD:'S$'};
+  const curLabels={CNY:'人民币 (CNY)',INR:'印度卢比 (INR)',USD:'美元 (USD)',SGD:'新加坡币 (SGD)'};
+  const settled=loadLS('settled')||[];
+  
+  for(const cur of ['CNY','INR','USD','SGD']){
+    const group=settles.filter(s=>s.currency===cur);
+    if(!group.length)continue;
+    
+    // 货币分组标题
+    const title=document.createElement('div');
+    title.style.cssText='font-size:15px;font-weight:700;color:var(--accent);margin:16px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--border)';
+    title.textContent=curLabels[cur];
+    sl.appendChild(title);
+    
+    group.forEach(s=>{
+      const fromIdx=persons.indexOf(s.from);
+      const toIdx=persons.indexOf(s.to);
+      const sym=symMap[cur]||'¥';
+      const key=`${s.from}-${s.to}-${cur}-${s.amount.toFixed(2)}`;
+      const isSettled=settled.includes(key);
+      const div=document.createElement('div');
+      div.className='settle-card';
+      div.style.opacity=isSettled?'0.5':'1';
+      div.innerHTML=`<div style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" ${isSettled?'checked':''} onchange="toggleSettle('${key}')" style="width:20px;height:20px;cursor:pointer;accent-color:var(--green)">
+          <span class="${tagColor(fromIdx)}" style="font-size:16px">${s.from}</span>
+          <span class="settle-arrow">${t('settle_arrow')}</span>
+          <span class="${tagColor(toIdx)}" style="font-size:16px">${s.to}</span>
+        </div>
+        <div class="settle-amount" style="${isSettled?'text-decoration:line-through;color:var(--dim)':''}">${sym}${fmt(s.amount)}</div>`;
+      sl.appendChild(div);
+    });
+  }
+}
+
+function toggleSettle(key){
+  const settled=loadLS('settled')||[];
+  const i=settled.indexOf(key);
+  if(i>=0)settled.splice(i,1);
+  else settled.push(key);
+  saveLS('settled',settled);
+  renderLedger();
 }
 
 // ===== 初始化 =====
