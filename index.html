@@ -513,7 +513,7 @@ async function renderFXHistory(){
     const tr=document.createElement('tr');
     const isC2I=r.direction==='cny2inr';
     const cls=r.diff>=0?'profit':'loss';
-    tr.innerHTML=`<td>${r.date}</td><td>${isC2I?'CNY→INR':'INR→CNY'}</td><td>${fmt(r.amount)}</td><td>${fmt(r.got)}</td><td class="${cls}">${r.diff>=0?'+':''}${fmt(r.diff)}</td><td><button class="del" onclick="delFX(${i})">✕</button></td>`;
+    tr.innerHTML=`<td>${r.date}</td><td>${isC2I?'CNY→INR':'INR→CNY'}</td><td>${isC2I?'¥':'₹'}${fmt(r.amount)}</td><td>${isC2I?'₹':'¥'}${fmt(r.got)}</td><td class="${cls}">${r.diff>=0?'+':''}${isC2I?'₹':'¥'}${fmt(r.diff)}</td><td><button class="del" onclick="delFX(${i})">✕</button></td>`;
     tbody.appendChild(tr);
   });
   tb.appendChild(tbody);
