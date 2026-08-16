@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>熏悟空工具箱</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;}
+  :root{
+    --bg:#0a0e1a;--card:#131826;--border:#1e2a44;--accent:#6c5ce7;
+    --text:#e3e6f0;--dim:#8892b0;--green:#00d68f;--red:#ff6b6b;
+    --gold:#ffd700;--blue:#3b82f6;
+  }
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+  .nav{display:flex;gap:8px;padding:16px 20px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;}
+  .nav-btn{padding:10px 20px;border:1px solid var(--border);border-radius:10px;background:transparent;color:var(--dim);cursor:pointer;font-size:14px;transition:.2s;font-weight:500;}
+  .nav-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .nav-btn:hover:not(.active){border-color:var(--accent);color:var(--text);}
+  .page{display:none;max-width:800px;margin:0 auto;padding:20px;}
+  .page.active{display:block;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:16px;}
+  .card h2{font-size:18px;margin-bottom:16px;display:flex;align-items:center;gap:8px;}
+  .input-group{margin-bottom:14px;}
+  label{display:block;font-size:13px;color:var(--dim);margin-bottom:6px;}
+  input,select{width:100%;padding:12px 14px;border:1px solid var(--border);border-radius:10px;background:#0d1117;color:var(--text);font-size:15px;outline:none;transition:.2s;}
+  input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(108,92,231,.15);}
+  .row{display:flex;gap:12px;}
+  .row .input-group{flex:1;}
+  .btn{padding:12px 24px;border:none;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer;font-size:15px;font-weight:600;transition:.2s;}
+  .btn:hover{opacity:.85;}
+  .btn.green{background:var(--green);color:#000;}
+  .btn.red{background:var(--red);}
+  .btn.sm{padding:6px 14px;font-size:13px;}
+  .result-box{background:#0d1117;border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:16px;}
+  .result-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+  .result-row:last-child{border:none;}
+  .result-label{color:var(--dim);font-size:14px;}
+  .result-value{font-size:18px;font-weight:700;}
+  .profit{color:var(--green);}
+  .loss{color:var(--red);}
+  .badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600;}
+  .badge-green{background:rgba(0,214,143,.15);color:var(--green);}
+  .badge-red{background:rgba(255,107,107,.15);color:var(--red);}
+  table{width:100%;border-collapse:collapse;margin-top:12px;}
+  th{text-align:left;padding:10px 12px;border-bottom:2px solid var(--border);color:var(--dim);font-size:13px;}
+  td{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.05);font-size:14px;}
+  tr:hover td{background:rgba(108,92,231,.05);}
+  .person-tag{display:inline-block;padding:4px 12px;border-radius:20px;font-size:13px;font-weight:600;margin:2px;}
+  .tag-0{background:rgba(108,92,231,.2);color:#a29bfe;}
+  .tag-1{background:rgba(0,214,143,.2);color:var(--green);}
+  .tag-2{background:rgba(255,107,107,.2);color:var(--red);}
+  .tag-3{background:rgba(255,215,0,.2);color:var(--gold);}
+  .tag-4{background:rgba(59,130,246,.2);color:var(--blue);}
+  .tag-5{background:rgba(255,159,67,.2);color:#ff9f43;}
+  .empty{text-align:center;color:var(--dim);padding:40px;font-size:14px;}
+  .settle-card{background:linear-gradient(135deg,rgba(108,92,231,.1),rgba(0,214,143,.08));border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+  .settle-from{font-weight:600;}
+  .settle-arrow{color:var(--dim);margin:0 12px;}
+  .settle-to{font-weight:600;}
+  .settle-amount{font-size:20px;font-weight:800;color:var(--green);}
+  .del{color:var(--red);cursor:pointer;font-size:18px;padding:4px 8px;border:none;background:none;}
+  .del:hover{opacity:.7;}
+  .toggle{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+  .toggle label{margin:0;}
+  .switch{position:relative;width:44px;height:24px;}
+  .switch input{opacity:0;width:0;height:0;}
+  .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#333;border-radius:24px;transition:.3s;}
+  .slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s;}
+  .switch input:checked+.slider{background:var(--accent);}
+  .switch input:checked+.slider:before{transform:translateX(20px);}
+  .summary-bar{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px;}
+  .summary-item{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;text-align:center;}
+  .summary-num{font-size:24px;font-weight:800;}
+  .summary-label{font-size:12px;color:var(--dim);margin-top:4px;}
+  @media(max-width:600px){.summary-bar{grid-template-columns:1fr;}.row{flex-direction:column;}}
+</style>
+</head>
+<body>
+<div class="nav">
+  <button class="nav-btn active" onclick="showPage('fx',this)">💱 汇率换算</button>
+  <button class="nav-btn" onclick="showPage('ledger',this)">📝 记账均摊</button>
+</div>
+
+<!-- ========== 汇率换算 ========== -->
+<div id="fx" class="page active">
+  <div class="card">
+    <h2>💱 CNY ↔ INR 现金兑换计算器</h2>
+
+    <div class="row">
+      <div class="input-group">
+        <label>方向</label>
+        <select id="direction" onchange="calcFX()">
+          <option value="cny2inr">人民币 → 印度卢比</option>
+          <option value="inr2cny">印度卢比 → 人民币</option>
+        </select>
+      </div>
+      <div class="input-group">
+        <label id="amountLabel">输入金额 (CNY)</label>
+        <input type="number" id="amount" value="10000" oninput="calcFX()" placeholder="输入金额">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="input-group">
+        <label>我的实际汇率</label>
+        <input type="number" id="myRate" value="11.5" step="0.01" oninput="calcFX()" placeholder="如 11.5">
+      </div>
+      <div class="input-group">
+        <label>国际参考汇率</label>
+        <input type="number" id="intlRate" value="11.8" step="0.01" oninput="calcFX()" placeholder="如 11.8">
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="input-group">
+        <label>手续费/汇率差 (CNY)</label>
+        <input type="number" id="fee" value="0" step="0.01" oninput="calcFX()" placeholder="手续费">
+      </div>
+      <div class="input-group">
+        <label>手续费扣除方式</label>
+        <select id="feeMode" onchange="calcFX()">
+          <option value="deduct">从输入金额中扣除</option>
+          <option value="extra">额外支付</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="result-box" id="fxResult"></div>
+  </div>
+
+  <div class="card">
+    <h2>📋 兑换记录</h2>
+    <table id="fxHistory">
+      <thead><tr><th>日期</th><th>方向</th><th>金额</th><th>到手</th><th>盈亏</th><th></th></tr></thead>
+    </table>
+    <div id="fxEmpty" class="empty">暂无记录，点击下方按钮记录本次兑换</div>
+    <br>
+    <button class="btn green" onclick="saveFX()">💾 记录本次兑换</button>
+    <button class="btn red sm" onclick="clearFXHistory()" style="margin-left:8px">清空记录</button>
+  </div>
+</div>
+
+<!-- ========== 记账均摊 ========== -->
+<div id="ledger" class="page">
+  <div class="summary-bar" id="summary"></div>
+
+  <div class="card">
+    <h2>📝 新增一笔</h2>
+    <div class="row">
+      <div class="input-group">
+        <label>项目</label>
+        <input type="text" id="item" placeholder="如：午餐、打车">
+      </div>
+      <div class="input-group">
+        <label>金额 (CNY)</label>
+        <input type="number" id="cost" step="0.01" placeholder="0.00">
+      </div>
+    </div>
+    <div class="row">
+      <div class="input-group">
+        <label>付款人</label>
+        <select id="payer"></select>
+      </div>
+      <div class="input-group">
+        <label>日期</label>
+        <input type="date" id="date">
+      </div>
+    </div>
+    <div class="input-group">
+      <label>备注</label>
+      <input type="text" id="note" placeholder="可选备注">
+    </div>
+    <div class="input-group">
+      <label>参与人均摊（勾选参与的人）</label>
+      <div id="splitWho" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+    </div>
+    <button class="btn" onclick="addEntry()">+ 添加</button>
+  </div>
+
+  <div class="card">
+    <h2>👥 人员管理</h2>
+    <div class="row">
+      <div class="input-group" style="flex:0 0 70%">
+        <input type="text" id="newPerson" placeholder="输入名字，回车添加" onkeydown="if(event.key==='Enter')addPerson()">
+      </div>
+      <div class="input-group" style="flex:1;display:flex;align-items:flex-end">
+        <button class="btn sm" onclick="addPerson()">添加</button>
+      </div>
+    </div>
+    <div id="personList" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <h2>📊 账目明细</h2>
+    <table id="ledgerTable">
+      <thead><tr><th>日期</th><th>项目</th><th>付款人</th><th>金额</th><th>均摊人</th><th></th></tr></thead>
+    </table>
+    <div id="ledgerEmpty" class="empty">暂无记录</div>
+  </div>
+
+  <div class="card">
+    <h2>💸 结算建议</h2>
+    <p style="color:var(--dim);font-size:13px;margin-bottom:12px">按均摊计算，谁该给谁多少钱，使所有人净支出相等</p>
+    <div id="settleList"></div>
+    <div id="settleEmpty" class="empty">添加账目后自动生成结算方案</div>
+  </div>
+</div>
+
+<script>
+// ===== 工具 =====
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.abs(n).toLocaleString('zh-CN',{maximumFractionDigits:2});
+const todayStr=()=>new Date().toISOString().slice(0,10);
+const tagColor=i=>`person-tag tag-${i%6}`;
+const save=(k,v)=>localStorage.setItem(k,JSON.stringify(v));
+const load=k=>{try{return JSON.parse(localStorage.getItem(k)||'[]')}catch{return[]}};
+
+// ===== 页面切换 =====
+function showPage(id,btn){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  $(id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ===== 汇率换算 =====
+function calcFX(){
+  const dir=$('direction').value;
+  const amt=parseFloat($('amount').value)||0;
+  const myR=parseFloat($('myRate').value)||0;
+  const intlR=parseFloat($('intlRate').value)||0;
+  const fee=parseFloat($('fee').value)||0;
+  const feeMode=$('feeMode').value;
+
+  const isC2I=dir==='cny2inr';
+  $('amountLabel').textContent=isC2I?'输入金额 (CNY)':'输入金额 (INR)';
+
+  let actualAmt=amt;
+  if(feeMode==='deduct') actualAmt=amt-fee;
+
+  const got=actualAmt*myR;
+  const intlGot=actualAmt*intlR;
+  const diff=got-intlGot;
+  const diffPct=intlGot>0?(diff/intlGot*100):0;
+
+  let html=`<div class="result-row"><span class="result-label">输入金额</span><span class="result-value">${fmt(amt)} ${isC2I?'CNY':'INR'}</span></div>`;
+  if(fee>0){
+    html+=`<div class="result-row"><span class="result-label">手续费</span><span class="result-value loss">-${fmt(fee)} CNY</span></div>`;
+    html+=`<div class="result-row"><span class="result-label">实际兑换金额</span><span class="result-value">${fmt(actualAmt)} ${isC2I?'CNY':'INR'}</span></div>`;
+  }
+  html+=`<div class="result-row"><span class="result-label">我的汇率</span><span class="result-value">1 ${isC2I?'CNY':'INR'} = ${myR} ${isC2I?'INR':'CNY'}</span></div>`;
+  html+=`<div class="result-row"><span class="result-label">国际参考汇率</span><span class="result-value" style="color:var(--dim)">1 ${isC2I?'CNY':'INR'} = ${intlR} ${isC2I?'INR':'CNY'}</span></div>`;
+  html+=`<div class="result-row" style="border-top:2px solid var(--border);margin-top:8px;padding-top:16px"><span class="result-label" style="font-size:16px;font-weight:700">到手金额</span><span class="result-value" style="font-size:28px;color:var(--green)">${fmt(got)} ${isC2I?'INR':'CNY'}</span></div>`;
+  html+=`<div class="result-row"><span class="result-label">按国际汇率应得</span><span class="result-value" style="color:var(--dim)">${fmt(intlGot)} ${isC2I?'INR':'CNY'}</span></div>`;
+
+  if(intlR>0){
+    const cls=diff>=0?'profit':'loss';
+    const badge=diff>=0?'<span class="badge badge-green">赚了</span>':'<span class="badge badge-red">亏了</span>';
+    html+=`<div class="result-row"><span class="result-label">盈亏 ${badge}</span><span class="result-value ${cls}">${diff>=0?'+':''}${fmt(diff)} ${isC2I?'INR':'CNY'} (${diffPct>=0?'+':''}${diffPct.toFixed(2)}%)</span></div>`;
+  }
+  $('fxResult').innerHTML=html;
+}
+
+function saveFX(){
+  const dir=$('direction').value;
+  const amt=parseFloat($('amount').value)||0;
+  const myR=parseFloat($('myRate').value)||0;
+  const intlR=parseFloat($('intlRate').value)||0;
+  const fee=parseFloat($('fee').value)||0;
+  const feeMode=$('feeMode').value;
+  const actual=feeMode==='deduct'?amt-fee:amt;
+  const got=actual*myR;
+  const intlGot=actual*intlR;
+  const diff=got-intlGot;
+
+  const h=load('fx_history');
+  h.unshift({date:todayStr(),dir,amount:amt,myRate:myR,intlRate:intlR,fee,got,intlGot,diff});
+  save('fx_history',h);
+  renderFXHistory();
+}
+
+function renderFXHistory(){
+  const h=load('fx_history');
+  const tb=$('fxHistory');
+  tb.querySelectorAll('tbody tr').forEach(r=>r.remove());
+  if(!h.length){$('fxEmpty').style.display='block';return;}
+  $('fxEmpty').style.display='none';
+  const tbody=document.createElement('tbody');
+  h.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    const isC2I=r.dir==='cny2inr';
+    const cls=r.diff>=0?'profit':'loss';
+    tr.innerHTML=`<td>${r.date}</td><td>${isC2I?'CNY→INR':'INR→CNY'}</td><td>${fmt(r.amount)}</td><td>${fmt(r.got)}</td><td class="${cls}">${r.diff>=0?'+':''}${fmt(r.diff)}</td><td><button class="del" onclick="delFX(${i})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+  tb.appendChild(tbody);
+}
+
+function delFX(i){
+  const h=load('fx_history');
+  h.splice(i,1);
+  save('fx_history',h);
+  renderFXHistory();
+}
+
+function clearFXHistory(){
+  if(confirm('确定清空所有兑换记录？')){
+    localStorage.removeItem('fx_history');
+    renderFXHistory();
+  }
+}
+
+// ===== 记账 =====
+let persons=load('persons');
+let entries=load('entries');
+if(!persons.length)persons=['我'];
+$('date').value=todayStr();
+
+function renderPersons(){
+  const sel=$('payer');
+  const sw=$('splitWho');
+  sel.innerHTML='';
+  sw.innerHTML='';
+  $('personList').innerHTML='';
+
+  persons.forEach((p,i)=>{
+    // 付款人下拉
+    const opt=document.createElement('option');
+    opt.value=p;opt.textContent=p;
+    sel.appendChild(opt);
+
+    // 均摊勾选
+    const lbl=document.createElement('label');
+    lbl.style.cssText='display:flex;align-items:center;gap:4px;cursor:pointer;padding:6px 12px;border:1px solid var(--border);border-radius:20px;font-size:13px';
+    lbl.innerHTML=`<input type="checkbox" value="${p}" checked style="width:auto"> <span class="${tagColor(i)}">${p}</span>`;
+    sw.appendChild(lbl);
+
+    // 人员列表
+    const tag=document.createElement('span');
+    tag.className=tagColor(i);
+    tag.style.cssText+='margin:4px;display:inline-flex;align-items:center;gap:6px';
+    tag.innerHTML=`${p} <span class="del" style="font-size:14px" onclick="delPerson(${i})">✕</span>`;
+    $('personList').appendChild(tag);
+  });
+}
+
+function addPerson(){
+  const v=$('newPerson').value.trim();
+  if(!v)return;
+  if(persons.includes(v)){alert('已存在');return;}
+  persons.push(v);
+  save('persons',persons);
+  $('newPerson').value='';
+  renderPersons();
+  renderLedger();
+}
+
+function delPerson(i){
+  const name=persons[i];
+  if(entries.some(e=>e.payer===name||e.splitWho.includes(name))){
+    if(!confirm(`${name} 在账目中有记录，确定删除？`))return;
+    entries=entries.map(e=>({
+      ...e,splitWho:e.splitWho.filter(s=>s!==name),
+      payer:e.payer===name?(persons[0]||''):e.payer
+    }));
+    save('entries',entries);
+  }
+  persons.splice(i,1);
+  save('persons',persons);
+  renderPersons();
+  renderLedger();
+}
+
+function addEntry(){
+  const item=$('item').value.trim();
+  const cost=parseFloat($('cost').value);
+  const payer=$('payer').value;
+  const date=$('date').value;
+  const note=$('note').value.trim();
+  const splitWho=[...document.querySelectorAll('#splitWho input:checked')].map(c=>c.value);
+
+  if(!item||!cost||!payer){alert('请填写项目、金额和付款人');return;}
+  if(!splitWho.length){alert('请至少勾选一个均摊人');return;}
+
+  entries.push({id:Date.now(),item,cost,payer,date,note,splitWho});
+  save('entries',entries);
+  $('item').value='';$('cost').value='';$('note').value='';
+  $('date').value=todayStr();
+  renderLedger();
+}
+
+function delEntry(id){
+  entries=entries.filter(e=>e.id!==id);
+  save('entries',entries);
+  renderLedger();
+}
+
+function renderLedger(){
+  const tb=$('ledgerTable');
+  tb.querySelectorAll('tbody tr').forEach(r=>r.remove());
+  if(!entries.length){$('ledgerEmpty').style.display='block';}
+  else{$('ledgerEmpty').style.display='none';
+    const tbody=document.createElement('tbody');
+    [...entries].reverse().forEach(e=>{
+      const payerIdx=persons.indexOf(e.payer);
+      const tr=document.createElement('tr');
+      const tags=e.splitWho.map(s=>{const idx=persons.indexOf(s);return `<span class="${tagColor(idx)}" style="font-size:11px">${s}</span>`}).join('');
+      tr.innerHTML=`<td>${e.date}</td><td>${e.item}${e.note?'<br><span style="color:var(--dim);font-size:12px">'+e.note+'</span>':''}</td><td><span class="${tagColor(payerIdx)}">${e.payer}</span></td><td>¥${fmt(e.cost)}</td><td>${tags}</td><td><button class="del" onclick="delEntry(${e.id})">✕</button></td>`;
+      tbody.appendChild(tr);
+    });
+    tb.appendChild(tbody);
+  }
+
+  // 汇总
+  const total=entries.reduce((s,e)=>s+e.cost,0);
+  const personNet={};
+  persons.forEach(p=>personNet[p]=0);
+  entries.forEach(e=>{
+    const share=e.cost/e.splitWho.length;
+    e.splitWho.forEach(s=>personNet[s]=(personNet[s]||0)-share);
+    personNet[e.payer]=(personNet[e.payer]||0)+e.cost;
+  });
+  const maxNet=Math.max(...Object.values(personNet),0);
+  const minNet=Math.min(...Object.values(personNet),0);
+  $('summary').innerHTML=`
+    <div class="summary-item"><div class="summary-num" style="color:var(--accent)">¥${fmt(total)}</div><div class="summary-label">总支出</div></div>
+    <div class="summary-item"><div class="summary-num" style="color:var(--green)">¥${fmt(maxNet)}</div><div class="summary-label">最多垫付</div></div>
+    <div class="summary-item"><div class="summary-num" style="color:var(--red)">¥${fmt(Math.abs(minNet))}</div><div class="summary-label">最多应付</div></div>`;
+
+  // 结算
+  const balances=Object.entries(personNet).map(([p,v])=>({p,v}));
+  const debtors=balances.filter(b=>b.v<0).sort((a,b)=>a.v-b.v);
+  const creditors=balances.filter(b=>b.v>0).sort((a,b)=>b.v-a.v);
+  const settles=[];
+  let di=0,ci=0;
+  while(di<debtors.length&&ci<creditors.length){
+    const d=debtors[di],c=creditors[ci];
+    const pay=Math.min(-d.v,c.v);
+    settles.push({from:d.p,to:c.p,amount:pay});
+    d.v+=pay;c.v-=pay;
+    if(Math.abs(d.v)<0.01)di++;
+    if(Math.abs(c.v)<0.01)ci++;
+  }
+
+  const sl=$('settleList');
+  sl.innerHTML='';
+  if(!settles.length){$('settleEmpty').style.display='block';return;}
+  $('settleEmpty').style.display='none';
+  settles.forEach(s=>{
+    const fromIdx=persons.indexOf(s.from);
+    const toIdx=persons.indexOf(s.to);
+    const div=document.createElement('div');
+    div.className='settle-card';
+    div.innerHTML=`<div><span class="${tagColor(fromIdx)}" style="font-size:16px">${s.from}</span><span class="settle-arrow">→ 给 →</span><span class="${tagColor(toIdx)}" style="font-size:16px">${s.to}</span></div><div class="settle-amount">¥${fmt(s.amount)}</div>`;
+    sl.appendChild(div);
+  });
+}
+
+// ===== 初始化 =====
+calcFX();
+renderFXHistory();
+renderPersons();
+renderLedger();
+</script>
+</body>
+</html>
