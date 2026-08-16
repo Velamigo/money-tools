@@ -226,7 +226,7 @@
   <div class="card">
     <h2 data-i18n="ledger_detail">📊 账目明细</h2>
     <table id="ledgerTable">
-      <thead><tr><th data-i18n="date">日期</th><th data-i18n="item_label">项目</th><th data-i18n="payer">付款人</th><th data-i18n="amount_label">金额</th><th>≈ RMB</th><th data-i18n="split_who">均摊人</th><th></th></tr></thead>
+      <thead><tr><th data-i18n="date">日期</th><th data-i18n="item_label">项目</th><th data-i18n="payer">付款人</th><th data-i18n="amount_label">金额</th><th>≈ RMB</th><th style="cursor:pointer;user-select:none" onclick="toggleRateDetail()" data-i18n="fx_rate">折算费率 ▼</th><th data-i18n="split_who">均摊人</th><th></th></tr></thead>
     </table>
     <div id="ledgerEmpty" class="empty" data-i18n="ledger_empty">暂无记录</div>
   </div>
@@ -346,6 +346,7 @@ const I18N={
     fill_required:'请填写项目、金额和付款人',select_one:'请至少勾选一个均摊人',
     in_records:'在账目中有记录，确定删除？',
     settle_arrow:'→ 给 →',
+    fx_rate:'折算费率',
   },
   en:{
     fx:'💱 FX Calculator',ledger:'📝 Expense Split',
@@ -373,6 +374,7 @@ const I18N={
     fill_required:'Please fill item, amount and payer',select_one:'Select at least one person',
     in_records:'has records, confirm delete?',
     settle_arrow:'→ pays →',
+    fx_rate:'FX Rate',
   }
 };
 function t(k){return I18N[lang][k]||k;}
@@ -461,6 +463,13 @@ function getEffectiveRate(){
   const got=amt*myR;
   const actualGot=feeMode==='deduct'?got-fee:got;
   return amt>0?(actualGot/amt):myR; // 实际每 1 CNY 到手多少 INR
+}
+
+// 切换折算费率详情显示
+function toggleRateDetail(){
+  const rows=document.querySelectorAll('.rate-detail');
+  const visible=[...rows].some(r=>r.style.display!=='none');
+  rows.forEach(r=>{r.style.display=visible?'none':'table-row';});
 }
 
 function calcLoss(){
@@ -629,13 +638,34 @@ function renderLedger(){
       const payerIdx=persons.indexOf(e.payer);
       const cur=e.currency||'CNY';
       const sym=cur==='INR'?'₹':'¥';
-      // 等额 RMB：用实际汇率（扣手续费后）换算
       const fxRate=cur==='INR'?(getEffectiveRate()):1;
       const rmb=cur==='INR'?(e.cost/fxRate):e.cost;
       const tr=document.createElement('tr');
       const tags=e.splitWho.map(s=>{const idx=persons.indexOf(s);return `<span class="${tagColor(idx)}" style="font-size:11px">${s}</span>`}).join('');
-      tr.innerHTML=`<td>${e.date}</td><td>${e.item}${e.note?'<br><span style="color:var(--dim);font-size:12px">'+e.note+'</span>':''}</td><td><span class="${tagColor(payerIdx)}">${e.payer}</span></td><td>${sym}${fmt(e.cost)}</td><td style="color:var(--dim)">¥${fmt(rmb)}</td><td>${tags}</td><td><button class="del" onclick="delEntry(${e.id})">✕</button></td>`;
+      tr.innerHTML=`<td>${e.date}</td><td>${e.item}${e.note?'<br><span style="color:var(--dim);font-size:12px">'+e.note+'</span>':''}</td><td><span class="${tagColor(payerIdx)}">${e.payer}</span></td><td>${sym}${fmt(e.cost)}</td><td style="color:var(--dim)">¥${fmt(rmb)}</td><td style="color:var(--dim);font-size:13px">${cur==='INR'?'1 CNY = '+fxRate.toFixed(4)+' INR':'—'}</td><td>${tags}</td><td><button class="del" onclick="delEntry(${e.id})">✕</button></td>`;
       tbody.appendChild(tr);
+      // 折算费率详情行（默认隐藏）
+      if(cur==='INR'){
+        const detail=document.createElement('tr');
+        detail.className='rate-detail';
+        detail.style.display='none';
+        const myR=parseFloat($('myRate')?.value)||0;
+        const fee=parseFloat($('fee')?.value)||0;
+        const feeMode=$('feeMode')?.value||'deduct';
+        const amt=parseFloat($('amount')?.value)||10000;
+        const got=amt*myR;
+        const actualGot=feeMode==='deduct'?got-fee:got;
+        const effRate=amt>0?(actualGot/amt):myR;
+        detail.innerHTML=`<td colspan="8" style="background:var(--input-bg);padding:12px 16px;font-size:13px;color:var(--dim)">
+          <div>原始汇率: 1 CNY = ${myR} INR</div>
+          <div>手续费: ${fmt(fee)} INR (${feeMode==='deduct'?'从到手扣除':'额外支付'})</div>
+          <div>兑换金额: ¥${fmt(amt)}</div>
+          <div>到手 INR: ${fmt(actualGot)}</div>
+          <div>有效费率: 1 CNY = ${effRate.toFixed(4)} INR</div>
+          <div>计算: ${sym}${fmt(e.cost)} ÷ ${effRate.toFixed(4)} = ¥${fmt(rmb)}</div>
+        </td>`;
+        tbody.appendChild(detail);
+      }
     });
     tb.appendChild(tbody);
   }
